@@ -184,3 +184,4 @@ with tab3:
 st.markdown("---")
 st.markdown("<div style='text-align: center; color: #666;'>Cold Email Generator Tool • Built with Streamlit</div>", 
             unsafe_allow_html=True)
+
