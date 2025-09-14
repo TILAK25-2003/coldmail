@@ -1,8 +1,15 @@
 import streamlit as st
 import os
-from job_parser import extract_job_details
-from portfolio_matcher import find_relevant_projects
-from email_generator import generate_cold_email
+import streamlit as st
+import os
+
+try:
+    from job_parser import extract_job_details
+    from portfolio_matcher import find_relevant_projects
+    from email_generator import generate_cold_email
+except ImportError as e:
+    st.error(f"Import Error: {e}. Please make sure all dependencies are installed.")
+    st.stop()
 
 # Page configuration
 st.set_page_config(
