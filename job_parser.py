@@ -1,9 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+from urllib.parse import urlparse
 
 def extract_job_details(url):
-    """Extract job description from URL"""
+    """Extract job description and company info from URL"""
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -12,43 +13,183 @@ def extract_job_details(url):
         soup = BeautifulSoup(response.text, 'html.parser')
         
         # Remove unwanted elements
-        for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+        for element in soup(['script', 'style', 'nav', 'footer', 'header']):
             element.decompose()
         
         # Get text content
         text = soup.get_text()
-        lines = [line.strip() for line in text.split('\n') if line.strip() and len(line.strip()) > 5]
-        return ' '.join(lines)
+        lines = [line.strip() for line in text.split('\n') if line.strip() and len(line.strip()) > 10]
+        job_text = ' '.join(lines)
+        
+        # Extract company name from URL and page
+        company_name = extract_company_name(url, soup)
+        
+        return {
+            'job_text': job_text,
+            'company_name': company_name,
+            'url': url
+        }
         
     except Exception as e:
-        return f"Could not extract job details: {str(e)}"
+        return {
+            'job_text': f"Could not extract job details: {str(e)}",
+            'company_name': "Unknown Company",
+            'url': url
+        }
+
+def extract_company_name(url, soup):
+    """Extract company name from URL and page content"""
+    # Try to get company name from URL first
+    domain = urlparse(url).netloc
+    company_from_url = domain.replace('www.', '').split('.')[0].title()
+    
+    # Try to extract from page title and meta tags
+    possible_names = set()
+    
+    # From title tag
+    if soup.title:
+        title_text = soup.title.get_text()
+        possible_names.update(extract_possible_company_names(title_text))
+    
+    # From meta tags
+    meta_tags = soup.find_all('meta', attrs={'name': ['og:site_name', 'application-name', 'apple-mobile-web-app-title']})
+    for meta in meta_tags:
+        if meta.get('content'):
+            possible_names.update(extract_possible_company_names(meta.get('content')))
+    
+    # From h1 and strong tags (often contain company names)
+    for tag in soup.find_all(['h1', 'h2', 'strong', 'b']):
+        text = tag.get_text().strip()
+        if len(text) < 50:  # Company names are usually short
+            possible_names.update(extract_possible_company_names(text))
+    
+    # Filter out garbage and choose the best name
+    valid_names = [name for name in possible_names if 2 <= len(name) <= 30 and name != company_from_url]
+    
+    if valid_names:
+        # Prefer longer names (more likely to be actual company names)
+        return max(valid_names, key=len)
+    
+    return company_from_url
+
+def extract_possible_company_names(text):
+    """Extract possible company names from text"""
+    names = set()
+    
+    # Look for patterns like "Company Name" or "Company Name Careers"
+    patterns = [
+        r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?:\s+(?:Careers|Jobs|Hiring|Career))',
+        r'Careers at\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',
+        r'Welcome to\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',
+        r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+[-–]+\s+Careers',
+    ]
+    
+    for pattern in patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        names.update(matches)
+    
+    # Also add any capitalized words that might be company names
+    words = re.findall(r'[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+', text)
+    names.update(words)
+    
+    return names
 
 def extract_key_info(job_text):
-    """Extract key information from job description"""
+    """Extract all types of skills from job description"""
+    # Extract technical skills
+    technical_skills = extract_technical_skills(job_text)
+    
+    # Extract soft skills
+    soft_skills = extract_soft_skills(job_text)
+    
     # Extract role
     role = extract_role(job_text)
     
     # Extract experience
     experience = extract_experience(job_text)
     
-    # Extract ALL skills (technical + non-technical)
-    skills = extract_all_skills(job_text)
+    # Extract tools and technologies
+    tools = extract_tools(job_text)
     
     return {
         'role': role,
         'experience': experience,
-        'skills': skills
+        'technical_skills': technical_skills,
+        'soft_skills': soft_skills,
+        'tools': tools,
+        'all_skills': technical_skills + soft_skills + tools
     }
 
+def extract_technical_skills(job_text):
+    """Extract technical skills"""
+    tech_skills = [
+        'Python', 'JavaScript', 'Java', 'React', 'Node.js', 'SQL', 'HTML', 'CSS',
+        'AWS', 'Docker', 'Kubernetes', 'Machine Learning', 'Data Analysis',
+        'TypeScript', 'Angular', 'Vue', 'Django', 'Flask', 'FastAPI', 'PostgreSQL',
+        'MySQL', 'MongoDB', 'Git', 'GitHub', 'CI/CD', 'REST API', 'GraphQL',
+        'TensorFlow', 'PyTorch', 'scikit-learn', 'Pandas', 'NumPy', 'Matplotlib',
+        'Seaborn', 'Excel', 'Tableau', 'Power BI', 'Azure', 'Google Cloud',
+        'Linux', 'Unix', 'Bash', 'Shell', 'C++', 'C#', '.NET', 'Spring Boot',
+        'Ruby', 'Rails', 'PHP', 'Laravel', 'WordPress', 'Swift', 'Kotlin',
+        'Android', 'iOS', 'React Native', 'Flutter', 'Firebase', 'Heroku',
+        'Jenkins', 'Travis CI', 'JIRA', 'Agile', 'Scrum', 'DevOps', 'NoSQL',
+        'Redis', 'Kafka', 'RabbitMQ', 'Elasticsearch', 'Spark', 'Hadoop'
+    ]
+    
+    return find_skills_in_text(job_text, tech_skills)
+
+def extract_soft_skills(job_text):
+    """Extract soft skills"""
+    soft_skills = [
+        'Communication', 'Leadership', 'Teamwork', 'Problem Solving', 'Creativity',
+        'Time Management', 'Adaptability', 'Critical Thinking', 'Collaboration',
+        'Interpersonal Skills', 'Presentation', 'Negotiation', 'Conflict Resolution',
+        'Emotional Intelligence', 'Decision Making', 'Strategic Thinking', 'Innovation',
+        'Attention to Detail', 'Organization', 'Multitasking', 'Customer Service',
+        'Mentoring', 'Coaching', 'Training', 'Public Speaking', 'Writing',
+        'Analytical Thinking', 'Research', 'Planning', 'Coordination', 'Flexibility',
+        'Resilience', 'Motivation', 'Initiative', 'Accountability', 'Professionalism',
+        'Networking', 'Relationship Building', 'Persuasion', 'Influence', 'Diplomacy'
+    ]
+    
+    return find_skills_in_text(job_text, soft_skills)
+
+def extract_tools(job_text):
+    """Extract tools and technologies"""
+    tools = [
+        'JIRA', 'Confluence', 'Slack', 'Teams', 'Zoom', 'Trello', 'Asana',
+        'Salesforce', 'HubSpot', 'Google Workspace', 'Microsoft Office',
+        'Google Analytics', 'Adobe Creative Suite', 'Figma', 'Sketch',
+        'Visual Studio', 'VS Code', 'IntelliJ', 'Eclipse', 'Xcode',
+        'Android Studio', 'Postman', 'Swagger', 'Splunk', 'Datadog',
+        'New Relic', 'Sentry', 'GitLab', 'Bitbucket', 'Jenkins',
+        'CircleCI', 'GitHub Actions', 'Terraform', 'Ansible', 'Chef',
+        'Puppet', 'Nagios', 'Prometheus', 'Grafana', 'Kibana'
+    ]
+    
+    return find_skills_in_text(job_text, tools)
+
+def find_skills_in_text(text, skills_list):
+    """Find skills from list in text"""
+    found_skills = []
+    text_lower = text.lower()
+    
+    for skill in skills_list:
+        # Check for exact match with word boundaries
+        if re.search(r'\b' + re.escape(skill.lower()) + r'\b', text_lower):
+            found_skills.append(skill)
+    
+    return list(set(found_skills))[:10]  # Remove duplicates and limit
+
 def extract_role(job_text):
-    """Extract job role/title"""
+    """Extract job role"""
     role_patterns = [
-        r'position:\s*([^\n]+?)(?:\n|\.|$)',
-        r'role:\s*([^\n]+?)(?:\n|\.|$)',
-        r'job title:\s*([^\n]+?)(?:\n|\.|$)',
-        r'looking for (?:a|an)?\s*([^\n]+?)(?:developer|engineer|analyst|designer|manager|specialist|coordinator|director)',
-        r'hiring.*?([^\n]+?)(?:developer|engineer|analyst|designer|manager|specialist|coordinator|director)',
-        r'title:\s*([^\n]+)'
+        r'position:\s*([^\n]+?)(?=\n|\.|$)',
+        r'role:\s*([^\n]+?)(?=\n|\.|$)',
+        r'job title:\s*([^\n]+?)(?=\n|\.|$)',
+        r'looking for (?:a|an)?\s*([^\n]+?)(?=\n|\.|$)',
+        r'hiring.*?([^\n]+?)(?:developer|engineer|analyst|designer|manager|specialist|lead|architect)',
+        r'join.*?as.*?([^\n]+?)(?=\n|\.|$)'
     ]
     
     for pattern in role_patterns:
@@ -56,7 +197,7 @@ def extract_role(job_text):
         if match:
             role = match.group(1).strip()
             # Clean up the role
-            role = re.sub(r'[^a-zA-Z0-9\s\-/]', '', role)
+            role = re.sub(r'[^a-zA-Z0-9\s\-]', '', role)
             return role.title()
     
     return "Professional Role"
@@ -72,145 +213,11 @@ def extract_experience(job_text):
         r'at least.*?(\d+).*?years'
     ]
     
-    years_found = []
     for pattern in exp_patterns:
         matches = re.findall(pattern, job_text, re.IGNORECASE)
-        for match in matches:
-            if isinstance(match, tuple):
-                match = match[0]  # Handle capture groups
-            if match.isdigit():
-                years_found.append(int(match))
+        if matches:
+            years = [int(match) for match in matches if isinstance(match, str) and match.isdigit()]
+            if years:
+                return f"{max(years)}+ years"
     
-    if years_found:
-        return f"{max(years_found)}+ years"
-    
-    return "Experience not specified"
-
-def extract_all_skills(job_text):
-    """Extract ALL skills (technical + non-technical + soft skills)"""
-    # Technical skills
-    technical_skills = extract_technical_skills(job_text)
-    
-    # Non-technical and soft skills
-    soft_skills = extract_soft_skills(job_text)
-    
-    # Combine and remove duplicates
-    all_skills = list(set(technical_skills + soft_skills))
-    
-    # Sort for better readability (technical first, then soft skills)
-    return sorted(all_skills, key=lambda x: (x not in technical_skills, x))
-
-def extract_technical_skills(job_text):
-    """Extract technical skills"""
-    # Comprehensive list of technical skills
-    tech_skills_list = [
-        # Programming Languages
-        'Python', 'JavaScript', 'Java', 'TypeScript', 'C++', 'C#', 'Ruby', 'PHP', 'Go', 'Rust',
-        'Swift', 'Kotlin', 'SQL', 'R', 'MATLAB', 'Scala', 'Perl', 'HTML', 'CSS', 'SASS', 'LESS',
-        
-        # Frameworks & Libraries
-        'React', 'Angular', 'Vue', 'Node.js', 'Django', 'Flask', 'FastAPI', 'Spring', 'Express',
-        'Ruby on Rails', 'Laravel', 'jQuery', 'Bootstrap', 'TensorFlow', 'PyTorch', 'Keras',
-        'scikit-learn', 'Pandas', 'NumPy', 'Matplotlib', 'Seaborn',
-        
-        # Databases
-        'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'SQLite', 'Oracle', 'SQL Server', 'Cassandra',
-        'Elasticsearch', 'DynamoDB', 'Firebase',
-        
-        # Tools & Platforms
-        'Git', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'Google Cloud', 'Heroku', 'Jenkins',
-        'Travis CI', 'CircleCI', 'JIRA', 'Confluence', 'Slack', 'Trello', 'Asana',
-        'Tableau', 'Power BI', 'Excel', 'Word', 'PowerPoint', 'Outlook',
-        
-        # methodologies
-        'Agile', 'Scrum', 'Kanban', 'Waterfall', 'DevOps', 'CI/CD', 'TDD', 'BDD',
-        
-        # Other technical
-        'REST API', 'GraphQL', 'Microservices', 'Machine Learning', 'AI', 'Data Analysis',
-        'Data Visualization', 'Big Data', 'Cloud Computing', 'Cybersecurity', 'Networking',
-        'Linux', 'Unix', 'Windows Server', 'Shell Scripting', 'Bash'
-    ]
-    
-    found_tech_skills = []
-    
-    # Check for exact matches
-    for skill in tech_skills_list:
-        if re.search(r'\b' + re.escape(skill) + r'\b', job_text, re.IGNORECASE):
-            found_tech_skills.append(skill)
-    
-    return found_tech_skills
-
-def extract_soft_skills(job_text):
-    """Extract soft skills and non-technical skills"""
-    soft_skills_list = [
-        # Communication
-        'Communication', 'Verbal Communication', 'Written Communication', 'Presentation',
-        'Public Speaking', 'Storytelling', 'Technical Writing',
-        
-        # Leadership
-        'Leadership', 'Team Management', 'Project Management', 'Mentoring', 'Coaching',
-        'Decision Making', 'Strategic Thinking', 'Delegation',
-        
-        # Collaboration
-        'Teamwork', 'Collaboration', 'Cross-functional Collaboration', 'Stakeholder Management',
-        'Relationship Building', 'Networking',
-        
-        # Problem-solving
-        'Problem Solving', 'Critical Thinking', 'Analytical Thinking', 'Creativity',
-        'Innovation', 'Troubleshooting', 'Research', 'Analysis',
-        
-        # Personal skills
-        'Time Management', 'Organization', 'Multitasking', 'Adaptability', 'Flexibility',
-        'Work Ethic', 'Professionalism', 'Reliability', 'Attention to Detail',
-        'Self-motivation', 'Initiative', 'Curiosity', 'Continuous Learning',
-        
-        # Business skills
-        'Business Acumen', 'Customer Service', 'Client Management', 'Sales', 'Marketing',
-        'Negotiation', 'Conflict Resolution', 'Emotional Intelligence',
-        
-        # Other
-        'Remote Work', 'Agile Methodology', 'Scrum Master', 'Product Management',
-        'Quality Assurance', 'Testing', 'Documentation'
-    ]
-    
-    found_soft_skills = []
-    
-    # Check for soft skills
-    for skill in soft_skills_list:
-        if re.search(r'\b' + re.escape(skill) + r'\b', job_text, re.IGNORECASE):
-            found_soft_skills.append(skill)
-    
-    # Extract skills from common phrases
-    skill_phrases = {
-        'Communication': r'communication skills|excellent communicator',
-        'Teamwork': r'team player|work well in teams|collaborative spirit',
-        'Problem Solving': r'problem-solving|solve problems|analytical skills',
-        'Leadership': r'leadership skills|ability to lead',
-        'Time Management': r'time management|meet deadlines|organizational skills',
-        'Adaptability': r'adaptable|ability to adapt|fast-paced environment'
-    }
-    
-    for skill, pattern in skill_phrases.items():
-        if skill not in found_soft_skills and re.search(pattern, job_text, re.IGNORECASE):
-            found_soft_skills.append(skill)
-    
-    return found_soft_skills
-
-def debug_skill_extraction(job_text):
-    """Debug function to see what skills are being extracted"""
-    print("=== SKILL EXTRACTION DEBUG ===")
-    print("Technical skills:", extract_technical_skills(job_text))
-    print("Soft skills:", extract_soft_skills(job_text))
-    print("All skills:", extract_all_skills(job_text))
-    print("==============================")
-
-# Test with sample job description
-if __name__ == "__main__":
-    sample_job = """
-    We're hiring a Senior Software Engineer with 5+ years of experience in Python and JavaScript.
-    Required skills: React, Node.js, AWS, Docker, excellent communication skills, teamwork.
-    Must have strong problem-solving abilities and leadership experience.
-    Nice to have: Kubernetes, Machine Learning, project management.
-    """
-    
-    debug_skill_extraction(sample_job)
+    return "Not specified"
