@@ -1,91 +1,98 @@
 import streamlit as st
-from job_parser import extract_job_details
-from portfolio_matcher import find_relevant_projects, SAMPLE_PORTFOLIO
+from job_parser import extract_job_details, extract_key_info
+from portfolio_matcher import find_relevant_projects
+from email_generator import generate_cold_email
 
-# Define your actual portfolio projects - REPLACE WITH YOUR REAL PROJECTS
+# Your portfolio - replace with your actual projects
 MY_PORTFOLIO = [
     {
         'name': 'E-commerce Website',
-        'description': 'Full-stack e-commerce platform with React and Node.js handling user authentication, payment processing, and inventory management',
-        'skills': ['React', 'Node.js', 'MongoDB', 'JavaScript', 'Express', 'REST API'],
+        'description': 'Built a full-stack e-commerce platform with React and Node.js',
+        'skills': ['React', 'Node.js', 'MongoDB', 'JavaScript'],
         'url': 'https://github.com/yourusername/ecommerce'
     },
     {
-        'name': 'Data Analysis Dashboard',
-        'description': 'Interactive data visualization dashboard using Python, Pandas and Plotly for real-time analytics',
-        'skills': ['Python', 'Pandas', 'Plotly', 'Data Analysis', 'Data Visualization', 'SQL'],
-        'url': 'https://github.com/yourusername/data-dashboard'
-    },
-    {
-        'name': 'Machine Learning Classifier',
-        'description': 'Machine learning model for image classification using TensorFlow and Keras with 95% accuracy',
-        'skills': ['Python', 'TensorFlow', 'Keras', 'Machine Learning', 'Deep Learning', 'NumPy'],
-        'url': 'https://github.com/yourusername/ml-classifier'
-    },
-    {
-        'name': 'Task Management App',
-        'description': 'Mobile task management application built with React Native featuring offline capabilities and push notifications',
-        'skills': ['React Native', 'JavaScript', 'Redux', 'Firebase', 'Mobile Development'],
-        'url': 'https://github.com/yourusername/task-app'
+        'name': 'Data Analysis Tool',
+        'description': 'Developed a Python tool for data analysis and visualization',
+        'skills': ['Python', 'Pandas', 'Matplotlib', 'Data Analysis'],
+        'url': 'https://github.com/yourusername/data-tool'
     }
 ]
 
 def main():
-    st.set_page_config(page_title="ColdMail - Job Application Assistant", page_icon="💼")
+    st.title("✉️ ColdMail Generator")
+    st.write("Paste job URL → Get key info → Generate email")
     
-    st.title("💼 ColdMail - Job Application Assistant")
-    st.write("Analyze job postings and find relevant portfolio projects for your applications.")
+    job_url = st.text_input("Job Posting URL:", placeholder="https://example.com/job")
     
-    # Option to use sample portfolio or custom one
-    use_custom_portfolio = st.checkbox("Use my custom portfolio", value=True)
-    portfolio_to_use = MY_PORTFOLIO if use_custom_portfolio else SAMPLE_PORTFOLIO
+    if st.button("Analyze Job") and job_url:
+        with st.spinner("Extracting job details..."):
+            job_text = extract_job_details(job_url)
+            key_info = extract_key_info(job_text)
+            relevant_projects = find_relevant_projects(job_text, MY_PORTFOLIO)
+            
+            # Store in session state
+            st.session_state.key_info = key_info
+            st.session_state.relevant_projects = relevant_projects
+            st.session_state.job_text = job_text
+            
+    # Show results if available
+    if 'key_info' in st.session_state:
+        display_results()
+        
+        # Email generation
+        st.markdown("---")
+        st.subheader("📧 Generate Cold Email")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            your_name = st.text_input("Your Name:", "John Doe")
+        with col2:
+            company_name = st.text_input("Company Name:", "Tech Company")
+        
+        hiring_manager = st.text_input("Hiring Manager (optional):", "Hiring Team")
+        
+        if st.button("Generate Email"):
+            generate_email(your_name, company_name, hiring_manager)
+
+def display_results():
+    """Display extracted job information"""
+    key_info = st.session_state.key_info
+    relevant_projects = st.session_state.relevant_projects
     
-    job_url = st.text_input("Enter job posting URL:", placeholder="https://example.com/job-posting")
+    st.subheader("🔍 Extracted Job Information")
     
-    if st.button("Analyze Job Posting") and job_url:
-        with st.spinner("Analyzing job posting and finding relevant projects..."):
-            try:
-                # Extract job details
-                job_details = extract_job_details(job_url)
-                job_description = job_details.get('description', '')
-                job_title = job_details.get('title', 'Unknown Position')
-                
-                st.subheader(f"Job Analysis: {job_title}")
-                
-                if job_description:
-                    st.text_area("Extracted Job Description", job_description, height=200)
-                    
-                    # Find relevant projects
-                    relevant_projects = find_relevant_projects(job_description, portfolio_to_use)
-                    
-                    st.subheader("🎯 Relevant Portfolio Projects")
-                    
-                    if relevant_projects:
-                        for i, project in enumerate(relevant_projects, 1):
-                            with st.expander(f"Project {i}: {project['name']}"):
-                                st.write(f"**Description:** {project['description']}")
-                                st.write(f"**Skills:** {', '.join(project['skills'])}")
-                                if project.get('url'):
-                                    st.write(f"**URL:** {project['url']}")
-                    else:
-                        st.warning("No relevant portfolio projects found for this job description.")
-                        
-                else:
-                    st.error("Could not extract job description from the URL.")
-                    
-            except Exception as e:
-                st.error(f"Error processing job posting: {str(e)}")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.info(f"**Role:** {key_info.get('role', 'Not specified')}")
+    with col2:
+        st.info(f"**Experience:** {key_info.get('experience', 'Not specified')}")
+    with col3:
+        st.info(f"**Skills:** {', '.join(key_info.get('skills', []))}")
     
-    # Add some instructions
-    with st.expander("ℹ️ How to use this tool"):
-        st.write("""
-        1. Paste the URL of any job posting
-        2. The tool will extract the job description
-        3. It will analyze your portfolio projects and find the most relevant ones
-        4. Use these relevant projects to tailor your cover letter and resume
-        5. Replace the sample portfolio with your actual projects in app.py
-        """)
+    st.subheader("🎯 Relevant Projects")
+    for project in relevant_projects:
+        st.write(f"**{project['name']}** - {project['description']}")
+
+def generate_email(your_name, company_name, hiring_manager):
+    """Generate and display cold email"""
+    key_info = st.session_state.key_info
+    relevant_projects = st.session_state.relevant_projects
+    job_text = st.session_state.job_text
+    
+    email = generate_cold_email(
+        your_name=your_name,
+        company_name=company_name,
+        hiring_manager=hiring_manager,
+        job_role=key_info.get('role', ''),
+        job_skills=key_info.get('skills', []),
+        relevant_projects=relevant_projects,
+        job_description=job_text[:500]  # First 500 chars
+    )
+    
+    st.subheader("📝 Generated Cold Email")
+    st.text_area("Email Content", email, height=300)
+    st.button("Copy to Clipboard")
 
 if __name__ == "__main__":
     main()
-
