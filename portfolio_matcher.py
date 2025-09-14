@@ -1,22 +1,6 @@
-# portfolio_matcher.py (updated)
-import chromadb
+# portfolio_matcher.py
 import pandas as pd
-import uuid
 import os
-
-# Initialize ChromaDB
-def initialize_vectorstore():
-    """Initialize or load the vector store"""
-    try:
-        client = chromadb.PersistentClient(path="vectorstore")
-        collection = client.get_or_create_collection(name="portfolio")
-        return collection
-    except Exception as e:
-        print(f"Error initializing vector store: {e}")
-        # Fallback: create in-memory collection
-        client = chromadb.Client()
-        collection = client.create_collection(name="portfolio")
-        return collection
 
 def load_portfolio_data():
     """Load portfolio data from CSV or create default if not exists"""
@@ -48,69 +32,57 @@ def load_portfolio_data():
         }
         df = pd.DataFrame(default_data)
         df.to_csv(csv_path, index=False)
-        print("Created default portfolio CSV file")
     else:
         df = pd.read_csv(csv_path)
     
     return df
 
-def setup_portfolio_collection():
-    """Set up the portfolio collection in ChromaDB"""
-    collection = initialize_vectorstore()
-    df = load_portfolio_data()
-    
-    # Only add documents if collection is empty
-    try:
-        if collection.count() == 0:
-            docs = df["Techstack"].astype(str).tolist()
-            metadatas = [{"links": str(link)} for link in df["Links"].tolist()]
-            ids = [str(uuid.uuid4()) for _ in range(len(docs))]
-            
-            collection.add(
-                documents=docs,
-                metadatas=metadatas,
-                ids=ids
-            )
-            print(f"Added {len(docs)} portfolio items to vector store")
-    except Exception as e:
-        print(f"Error setting up portfolio collection: {e}")
-    
-    return collection
-
 def find_relevant_projects(skills, n_results=3):
-    """Find relevant projects based on skills"""
+    """Find relevant projects based on skills using simple text matching"""
     try:
-        collection = setup_portfolio_collection()
+        df = load_portfolio_data()
         
-        # Create a query from skills
-        query_text = " ".join(skills) if isinstance(skills, list) else skills
+        # Convert skills to a list if it's a string
+        if isinstance(skills, str):
+            skills = [skill.strip() for skill in skills.split(',')]
         
-        # Query the collection
-        results = collection.query(
-            query_texts=[query_text],
-            n_results=n_results
-        )
+        # Score each project based on skill matches
+        scored_projects = []
+        for index, row in df.iterrows():
+            score = 0
+            techstack = str(row['Techstack']).lower()
+            
+            for skill in skills:
+                skill_lower = str(skill).lower().strip()
+                if skill_lower in techstack:
+                    score += 3
+                elif any(skill_lower in word for word in techstack.split()):
+                    score += 1
+            
+            scored_projects.append({
+                'score': score,
+                'document': row['Techstack'],
+                'metadata': {'links': row['Links']}
+            })
+        
+        # Sort by score and return top n results
+        scored_projects.sort(key=lambda x: x['score'], reverse=True)
+        top_projects = scored_projects[:n_results]
         
         # Format results
         relevant_projects = []
-        for i, doc in enumerate(results['documents'][0]):
+        for project in top_projects:
             relevant_projects.append({
-                "document": doc,
-                "metadata": results['metadatas'][0][i]
+                "document": project['document'],
+                "metadata": project['metadata']
             })
         
         return relevant_projects
+        
     except Exception as e:
-        print(f"Error finding relevant projects: {e}")
-        # Fallback: return some default projects
-        df = load_portfolio_data()
+        # Fallback: return default projects
         return [
-            {"document": df["Techstack"].iloc[0], "metadata": {"links": df["Links"].iloc[0]}},
-            {"document": df["Techstack"].iloc[1], "metadata": {"links": df["Links"].iloc[1]}}
+            {"document": "Python, Django, PostgreSQL", "metadata": {"links": "https://example.com/python-project"}},
+            {"document": "React, Node.js, MongoDB", "metadata": {"links": "https://example.com/react-project"}}
         ]
 
-# Test the function if run directly
-if __name__ == "__main__":
-    test_skills = ["Python", "JavaScript"]
-    projects = find_relevant_projects(test_skills)
-    print("Test results:", projects)
