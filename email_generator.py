@@ -1,42 +1,46 @@
-def generate_cold_email(your_name, company_name, hiring_manager, job_role, job_skills, relevant_projects, job_description):
-    """Generate a cold email based on job details"""
+def generate_cold_email(your_name, company_name, hiring_manager, job_role, 
+                       technical_skills, soft_skills, relevant_projects, experience_required):
+    """Generate a comprehensive cold email"""
     
-    # Skills string
-    skills_str = ', '.join(job_skills) if job_skills else "various technologies"
+    # Format skills
+    tech_skills_str = ', '.join(technical_skills[:5]) if technical_skills else "relevant technologies"
+    soft_skills_str = ', '.join(soft_skills[:3]) if soft_skills else "key soft skills"
     
-    # Projects string
+    # Format projects
     if relevant_projects:
         projects_text = "\n".join([
             f"- {proj['name']}: {proj['description']}" 
-            for proj in relevant_projects[:2]  # Max 2 projects
+            for proj in relevant_projects[:2]
         ])
     else:
-        projects_text = "I have worked on several relevant projects that demonstrate my capabilities."
+        projects_text = "I have successfully delivered projects that demonstrate my capabilities in similar domains."
     
     email = f"""Subject: Application for {job_role} Position at {company_name}
 
 Dear {hiring_manager},
 
-I am writing to express my interest in the {job_role} position at {company_name}. I was excited to see your posting and believe my skills and experience align well with your requirements.
+I am writing to express my enthusiastic interest in the {job_role} position at {company_name}. With {experience_required if experience_required != 'Not specified' else 'extensive'} experience and a proven track record in similar roles, I am confident in my ability to contribute significantly to your team.
 
-I have experience with {skills_str} and have successfully delivered projects such as:
+My technical expertise includes {tech_skills_str}, complemented by strong {soft_skills_str}. I have successfully delivered projects such as:
 {projects_text}
 
-From your job description, I understand you're looking for someone with expertise in {skills_str}. My background includes:
+What particularly excites me about the opportunity at {company_name} is [mention something specific about the company if known - their mission, recent achievements, or projects].
 
-- Developing solutions using {skills_str}
-- Collaborating with cross-functional teams
-- Delivering high-quality software on time
+My experience aligns well with your requirements:
+- Technical proficiency in {tech_skills_str}
+- Strong {soft_skills_str} for effective collaboration
+- Proven ability to deliver results in dynamic environments
 
-I am particularly impressed by {company_name}'s work and would be thrilled to contribute to your team.
+I am impressed by {company_name}'s [mention something positive - innovation, culture, market position] and would be thrilled to contribute to your continued success.
 
-I would welcome the opportunity to discuss how my skills can benefit {company_name}. Thank you for considering my application.
+I would welcome the opportunity to discuss how my skills and experience can benefit {company_name}. Thank you for considering my application.
 
 Best regards,
 {your_name}
 {your_name.replace(' ', '').lower()}@email.com
 +1 (555) 123-4567
 LinkedIn: linkedin.com/in/{your_name.replace(' ', '').lower()}
-"""
 
+P.S. I've been following {company_name}'s work in [industry/field] and am particularly impressed by [specific achievement or aspect]."""
+    
     return email
