@@ -369,4 +369,44 @@ def main():
             with st.spinner("🔍 Analyzing job posting..."):
                 try:
                     # Extract job details
-                    job_text = extract_job_details(j
+                    job_text = extract_job_details(job_url)
+                    
+                    if "error" in job_text.lower():
+                        st.error(f"❌ {job_text}")
+                    else:
+                        # Extract key information
+                        key_info = extract_key_info(job_text)
+                        company_name = extract_company_name(job_url, job_text)
+                        
+                        # Find relevant projects
+                        relevant_projects = find_relevant_projects(job_text, MY_PORTFOLIO)
+                        
+                        # Store in session state
+                        st.session_state.key_info = key_info
+                        st.session_state.relevant_projects = relevant_projects
+                        st.session_state.job_text = job_text
+                        st.session_state.company_name = company_name
+                        st.session_state.job_url = job_url
+                        
+                        st.success("✅ Analysis complete!")
+                        
+                except Exception as e:
+                    st.error(f"❌ Error analyzing job: {str(e)}")
+    
+    # Show results if available
+    if 'key_info' in st.session_state:
+        display_results()
+        
+        # Email generation section
+        st.markdown("---")
+        st.subheader("📧 Generate Cold Email")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            your_name = st.text_input("Your Name:", "John Doe")
+        with col2:
+            company_name = st.text_input("Company Name:", st.session_state.company_name)
+        
+        hiring_manager = st.text_input("Hiring Manager (optional):", "Hiring Team")
+        your_email = st.text_input("Your Email:", "johndoe@email.com")
+       
