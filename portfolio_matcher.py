@@ -7,44 +7,26 @@ def find_relevant_projects(job_text, portfolio_projects):
     relevant_projects = []
     
     for project in portfolio_projects:
-        relevance_score = 0
-        
-        # Check project skills
+        # Check if any project skills are in job description
         for skill in project.get('skills', []):
             if skill.lower() in job_lower:
-                relevance_score += 2
-        
-        # Check project description
-        project_desc = project.get('description', '').lower()
-        if any(word in job_lower for word in project_desc.split()[:10]):  # First 10 words
-            relevance_score += 1
-        
-        # Check project name
-        project_name = project.get('name', '').lower()
-        if any(word in job_lower for word in project_name.split()):
-            relevance_score += 1
-        
-        if relevance_score > 0:
-            project_with_score = project.copy()
-            project_with_score['relevance_score'] = relevance_score
-            relevant_projects.append(project_with_score)
+                relevant_projects.append(project)
+                break
     
-    # Sort by relevance score
-    relevant_projects.sort(key=lambda x: x.get('relevance_score', 0), reverse=True)
-    return relevant_projects[:3]  # Return top 3 most relevant
+    return relevant_projects
 
 # Sample portfolio
 SAMPLE_PORTFOLIO = [
     {
         'name': 'Web Application',
-        'description': 'Built a responsive web app with React and Node.js',
-        'skills': ['React', 'Node.js', 'JavaScript', 'CSS', 'HTML'],
+        'description': 'Built a responsive web app with React',
+        'skills': ['React', 'JavaScript', 'CSS', 'HTML'],
         'url': 'https://github.com/example/webapp'
     },
     {
-        'name': 'Data Analysis Project',
-        'description': 'Python data analysis and visualization project',
-        'skills': ['Python', 'Pandas', 'Matplotlib', 'Data Analysis', 'SQL'],
+        'name': 'Data Project',
+        'description': 'Python data analysis project',
+        'skills': ['Python', 'Pandas', 'Data Analysis'],
         'url': 'https://github.com/example/data-project'
     }
 ]
