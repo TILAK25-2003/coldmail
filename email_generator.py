@@ -1,66 +1,42 @@
-from langchain_groq import ChatGroq
-from langchain_core.prompts import PromptTemplate
+def generate_cold_email(your_name, company_name, hiring_manager, job_role, job_skills, relevant_projects, job_description):
+    """Generate a cold email based on job details"""
+    
+    # Skills string
+    skills_str = ', '.join(job_skills) if job_skills else "various technologies"
+    
+    # Projects string
+    if relevant_projects:
+        projects_text = "\n".join([
+            f"- {proj['name']}: {proj['description']}" 
+            for proj in relevant_projects[:2]  # Max 2 projects
+        ])
+    else:
+        projects_text = "I have worked on several relevant projects that demonstrate my capabilities."
+    
+    email = f"""Subject: Application for {job_role} Position at {company_name}
 
-def generate_cold_email(job_data, projects):
-    """Generate a cold email based on job data and relevant projects"""
-    # Initialize LLM
-    llm = ChatGroq(
-        temperature=0.7,
-        model_name="llama-3.3-70b-versatile"
-    )
-    
-    # Format projects for the prompt
-    projects_text = ""
-    if projects:
-        projects_text = "Relevant Projects:\n"
-        for i, project in enumerate(projects, 1):
-            projects_text += f"{i}. {project['document']} (Link: {project['metadata']['links']})\n"
-    
-    # Create prompt template
-    prompt_template = PromptTemplate.from_template(
-        """
-        You are an expert job seeker crafting a compelling cold email for a hiring manager.
-        
-        JOB DETAILS:
-        - Role: {role}
-        - Experience Required: {experience}
-        - Key Skills: {skills}
-        - Description: {description}
-        
-        {projects_text}
-        
-        INSTRUCTIONS:
-        Create a professional cold email that:
-        1. Introduces the candidate briefly
-        2. Expresses genuine interest in the specific role
-        3. Highlights relevant skills and experience that match the job requirements
-        4. Mentions specific projects from the portfolio that demonstrate these skills
-        5. Shows enthusiasm for the company/role
-        6. Includes a polite call to action (request for interview)
-        7. Is concise (around 200-300 words)
-        8. Has a professional tone but is not overly formal
-        
-        Format the email properly with:
-        - Appropriate subject line
-        - Professional greeting
-        - Well-structured paragraphs
-        - Professional closing
-        
-        COLD EMAIL:
-        """
-    )
-    
-    # Format skills list
-    skills_text = ", ".join(job_data['skills']) if isinstance(job_data['skills'], list) else job_data['skills']
-    
-    # Create chain and generate email
-    chain = prompt_template | llm
-    response = chain.invoke({
-        "role": job_data['role'],
-        "experience": job_data['experience'],
-        "skills": skills_text,
-        "description": job_data['description'],
-        "projects_text": projects_text
-    })
-    
-    return response.content
+Dear {hiring_manager},
+
+I am writing to express my interest in the {job_role} position at {company_name}. I was excited to see your posting and believe my skills and experience align well with your requirements.
+
+I have experience with {skills_str} and have successfully delivered projects such as:
+{projects_text}
+
+From your job description, I understand you're looking for someone with expertise in {skills_str}. My background includes:
+
+- Developing solutions using {skills_str}
+- Collaborating with cross-functional teams
+- Delivering high-quality software on time
+
+I am particularly impressed by {company_name}'s work and would be thrilled to contribute to your team.
+
+I would welcome the opportunity to discuss how my skills can benefit {company_name}. Thank you for considering my application.
+
+Best regards,
+{your_name}
+{your_name.replace(' ', '').lower()}@email.com
++1 (555) 123-4567
+LinkedIn: linkedin.com/in/{your_name.replace(' ', '').lower()}
+"""
+
+    return email
