@@ -1,31 +1,23 @@
-# app.py (updated imports section)
+# app.py (updated - no API key required)
 import streamlit as st
 import os
 import sys
-import traceback
 
-# Add the current directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-# Try to import with better error handling
+# Add import handling
 try:
     from job_parser import extract_job_details
-except ImportError as e:
-    st.error(f"Failed to import job_parser: {e}")
-    # Define a fallback function
+except ImportError:
     def extract_job_details(url):
         return {
-            "role": "Software Developer",
+            "role": "Software Developer", 
             "experience": "2+ years",
             "skills": ["Python", "JavaScript", "Problem Solving"],
-            "description": "Job description extraction is currently unavailable."
+            "description": "Job details extraction unavailable."
         }
 
 try:
     from portfolio_matcher import find_relevant_projects
-except ImportError as e:
-    st.error(f"Failed to import portfolio_matcher: {e}")
-    # Define a fallback function
+except ImportError:
     def find_relevant_projects(skills, n_results=3):
         return [
             {"document": "Python, Django, PostgreSQL", "metadata": {"links": "https://example.com/python-project"}},
@@ -34,27 +26,25 @@ except ImportError as e:
 
 try:
     from email_generator import generate_cold_email
-except ImportError as e:
-    st.error(f"Failed to import email_generator: {e}")
-    # Define a fallback function
+except ImportError:
     def generate_cold_email(job_data, projects):
         return f"""
-        Subject: Application for {job_data.get('role', 'Software Developer')} Position
-        
-        Dear Hiring Manager,
-        
-        I am writing to express my interest in the {job_data.get('role', 'Software Developer')} position.
-        
-        With experience in {', '.join(job_data.get('skills', ['Python', 'JavaScript']))}, 
-        I believe I would be a strong candidate for this role.
-        
-        Thank you for considering my application.
-        
-        Sincerely,
-        [Your Name]
-        """
+Subject: Application for {job_data.get('role', 'Software Developer')} Position
 
-# The rest of your app.py remains the same...
+Dear Hiring Manager,
+
+I am writing to apply for the {job_data.get('role', 'Software Developer')} position.
+
+With experience in {', '.join(job_data.get('skills', ['Python', 'JavaScript']))}, 
+I believe I would be a strong candidate for this role.
+
+Thank you for considering my application.
+
+Sincerely,
+[Your Name]
+[Your Contact Information]
+"""
+
 # Page configuration
 st.set_page_config(
     page_title="Cold Email Generator",
@@ -113,21 +103,22 @@ if 'email' not in st.session_state:
 st.markdown('<h1 class="main-header">Cold Email Generator</h1>', unsafe_allow_html=True)
 st.markdown("Generate personalized cold emails for job applications based on your portfolio.")
 
-# Sidebar for API key input
+# Sidebar (removed API key input)
 with st.sidebar:
-    st.header("Configuration")
-    groq_api_key = st.text_input("Groq API Key", type="password", 
-                                help="Get your API key from https://console.groq.com/")
-    os.environ["GROQ_API_KEY"] = groq_api_key
+    st.header("How to Use")
+    st.info("""
+    **Instructions:**
+    1. Paste a job posting URL
+    2. Click 'Parse Job Details'
+    3. Review the extracted information
+    4. Click 'Generate Cold Email'
+    5. Copy and customize your email
+    """)
     
     st.divider()
     st.info("""
-    **How to use:**
-    1. Enter your Groq API key
-    2. Paste a job posting URL
-    3. Click 'Parse Job Details'
-    4. Review the extracted information
-    5. Click 'Generate Cold Email'
+    **Note:** This tool uses pattern matching instead of AI 
+    to generate emails, so no API key is required!
     """)
 
 # Main content
@@ -141,7 +132,7 @@ with tab1:
     
     col1, col2 = st.columns([1, 3])
     with col1:
-        parse_clicked = st.button("Parse Job Details", disabled=not groq_api_key)
+        parse_clicked = st.button("Parse Job Details")
     
     if parse_clicked and job_url:
         with st.spinner("Extracting job details..."):
@@ -195,7 +186,7 @@ with tab2:
     
     if st.session_state.email:
         st.markdown('<div class="success-box">', unsafe_allow_html=True)
-        st.markdown(st.session_state.email)
+        st.text(st.session_state.email)  # Using text instead of markdown for better formatting
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Copy to clipboard button
@@ -214,20 +205,20 @@ with tab3:
     
     This tool helps you create personalized cold emails for job applications by:
     
-    1. **Parsing job postings** - Extracting key requirements and skills
+    1. **Parsing job postings** - Extracting key requirements and skills using pattern matching
     2. **Matching with your portfolio** - Finding your most relevant projects
-    3. **Generating tailored emails** - Creating professional, personalized emails
+    3. **Generating tailored emails** - Creating professional emails using templates
     
     ### How It Works
     
-    - Uses AI to analyze job descriptions
+    - Uses pattern matching to analyze job descriptions
     - Matches requirements with your portfolio projects
-    - Generates compelling emails that highlight your relevant experience
+    - Generates compelling emails using pre-defined templates
     
     ### Privacy Note
     
-    - Your API key is only used during your session
-    - Job data is processed but not stored
+    - No API keys or external services required
+    - All processing happens in your browser
     - No personal data is collected or saved
     """)
 
@@ -235,4 +226,3 @@ with tab3:
 st.markdown("---")
 st.markdown("<div style='text-align: center; color: #666;'>Cold Email Generator Tool • Built with Streamlit</div>", 
             unsafe_allow_html=True)
-
