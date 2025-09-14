@@ -407,6 +407,4 @@ def main():
         with col2:
             company_name = st.text_input("Company Name:", st.session_state.company_name)
         
-        hiring_manager = st.text_input("Hiring Manager (optional):", "Hiring Team")
-        your_email = st.text_input("Your Email:", "johndoe@email.com")
        
