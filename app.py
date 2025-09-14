@@ -1,4 +1,4 @@
-# app.py (complete single file solution)
+# app.py (complete single file solution) - FIXED
 import streamlit as st
 import pandas as pd
 import os
@@ -405,6 +405,11 @@ with tab3:
     - No API keys or external services required
     - All processing happens in your browser
     - No personal data is collected or saved
+    """)
 
+# Footer
+st.markdown("---")
+st.markdown("<div style='text-align: center; color: #666;'>Cold Email Generator Tool • Built with Streamlit</div>", 
+            unsafe_allow_html=True)
 
 
