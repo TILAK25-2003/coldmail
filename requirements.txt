@@ -1,1 +1,7 @@
+# requirements.txt
 streamlit
+langchain_groq
+langchain-community
+chromadb
+pandas
+python-dotenv
