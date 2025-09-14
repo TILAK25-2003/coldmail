@@ -1,187 +1,91 @@
 import streamlit as st
-import os
 from job_parser import extract_job_details
-from portfolio_matcher import find_relevant_projects
-from email_generator import generate_cold_email
+from portfolio_matcher import find_relevant_projects, SAMPLE_PORTFOLIO
 
-# Page configuration
-st.set_page_config(
-    page_title="Cold Email Generator",
-    page_icon="✉️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Define your actual portfolio projects - REPLACE WITH YOUR REAL PROJECTS
+MY_PORTFOLIO = [
+    {
+        'name': 'E-commerce Website',
+        'description': 'Full-stack e-commerce platform with React and Node.js handling user authentication, payment processing, and inventory management',
+        'skills': ['React', 'Node.js', 'MongoDB', 'JavaScript', 'Express', 'REST API'],
+        'url': 'https://github.com/yourusername/ecommerce'
+    },
+    {
+        'name': 'Data Analysis Dashboard',
+        'description': 'Interactive data visualization dashboard using Python, Pandas and Plotly for real-time analytics',
+        'skills': ['Python', 'Pandas', 'Plotly', 'Data Analysis', 'Data Visualization', 'SQL'],
+        'url': 'https://github.com/yourusername/data-dashboard'
+    },
+    {
+        'name': 'Machine Learning Classifier',
+        'description': 'Machine learning model for image classification using TensorFlow and Keras with 95% accuracy',
+        'skills': ['Python', 'TensorFlow', 'Keras', 'Machine Learning', 'Deep Learning', 'NumPy'],
+        'url': 'https://github.com/yourusername/ml-classifier'
+    },
+    {
+        'name': 'Task Management App',
+        'description': 'Mobile task management application built with React Native featuring offline capabilities and push notifications',
+        'skills': ['React Native', 'JavaScript', 'Redux', 'Firebase', 'Mobile Development'],
+        'url': 'https://github.com/yourusername/task-app'
+    }
+]
 
-# Custom CSS for styling
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 3rem;
-        color: #1E88E5;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .sub-header {
-        font-size: 1.5rem;
-        color: #0D47A1;
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
-    }
-    .success-box {
-        background-color: #E8F5E9;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        border-left: 5px solid #4CAF50;
-        margin-top: 1.5rem;
-    }
-    .info-box {
-        background-color: #E3F2FD;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 5px solid #2196F3;
-        margin-top: 1rem;
-    }
-    .stButton button {
-        background-color: #1E88E5;
-        color: white;
-        font-weight: bold;
-        width: 100%;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Initialize session state
-if 'job_data' not in st.session_state:
-    st.session_state.job_data = None
-if 'projects' not in st.session_state:
-    st.session_state.projects = None
-if 'email' not in st.session_state:
-    st.session_state.email = None
-
-# Header
-st.markdown('<h1 class="main-header">Cold Email Generator</h1>', unsafe_allow_html=True)
-st.markdown("Generate personalized cold emails for job applications based on your portfolio.")
-
-# Sidebar for API key input
-with st.sidebar:
-    st.header("Configuration")
-    groq_api_key = st.text_input("Groq API Key", type="password", 
-                                help="Get your API key from https://console.groq.com/")
-    os.environ["GROQ_API_KEY"] = groq_api_key
+def main():
+    st.set_page_config(page_title="ColdMail - Job Application Assistant", page_icon="💼")
     
-    st.divider()
-    st.info("""
-    **How to use:**
-    1. Enter your Groq API key
-    2. Paste a job posting URL
-    3. Click 'Parse Job Details'
-    4. Review the extracted information
-    5. Click 'Generate Cold Email'
-    """)
-
-# Main content
-tab1, tab2, tab3 = st.tabs(["Job URL Input", "Generated Email", "About"])
-
-with tab1:
-    st.markdown('<h2 class="sub-header">Paste Job URL</h2>', unsafe_allow_html=True)
+    st.title("💼 ColdMail - Job Application Assistant")
+    st.write("Analyze job postings and find relevant portfolio projects for your applications.")
     
-    job_url = st.text_input("Enter the job posting URL:", 
-                           placeholder="https://careers.example.com/job/123")
+    # Option to use sample portfolio or custom one
+    use_custom_portfolio = st.checkbox("Use my custom portfolio", value=True)
+    portfolio_to_use = MY_PORTFOLIO if use_custom_portfolio else SAMPLE_PORTFOLIO
     
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        parse_clicked = st.button("Parse Job Details", disabled=not groq_api_key)
+    job_url = st.text_input("Enter job posting URL:", placeholder="https://example.com/job-posting")
     
-    if parse_clicked and job_url:
-        with st.spinner("Extracting job details..."):
+    if st.button("Analyze Job Posting") and job_url:
+        with st.spinner("Analyzing job posting and finding relevant projects..."):
             try:
-                st.session_state.job_data = extract_job_details(job_url)
-                st.session_state.projects = find_relevant_projects(st.session_state.job_data['skills'])
+                # Extract job details
+                job_details = extract_job_details(job_url)
+                job_description = job_details.get('description', '')
+                job_title = job_details.get('title', 'Unknown Position')
                 
-                st.success("Job details extracted successfully!")
+                st.subheader(f"Job Analysis: {job_title}")
                 
-                # Display job details
-                st.markdown('<div class="info-box">', unsafe_allow_html=True)
-                st.subheader("Extracted Job Details")
-                st.write(f"**Role:** {st.session_state.job_data['role']}")
-                st.write(f"**Experience:** {st.session_state.job_data['experience']}")
-                st.write("**Key Skills:**")
-                for skill in st.session_state.job_data['skills']:
-                    st.write(f"- {skill}")
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Display matched projects
-                if st.session_state.projects:
-                    st.markdown('<div class="info-box">', unsafe_allow_html=True)
-                    st.subheader("Relevant Projects from Your Portfolio")
-                    for project in st.session_state.projects:
-                        st.write(f"- {project['document']} - [View Project]({project['metadata']['links']})")
-                    st.markdown('</div>', unsafe_allow_html=True)
-                
+                if job_description:
+                    st.text_area("Extracted Job Description", job_description, height=200)
+                    
+                    # Find relevant projects
+                    relevant_projects = find_relevant_projects(job_description, portfolio_to_use)
+                    
+                    st.subheader("🎯 Relevant Portfolio Projects")
+                    
+                    if relevant_projects:
+                        for i, project in enumerate(relevant_projects, 1):
+                            with st.expander(f"Project {i}: {project['name']}"):
+                                st.write(f"**Description:** {project['description']}")
+                                st.write(f"**Skills:** {', '.join(project['skills'])}")
+                                if project.get('url'):
+                                    st.write(f"**URL:** {project['url']}")
+                    else:
+                        st.warning("No relevant portfolio projects found for this job description.")
+                        
+                else:
+                    st.error("Could not extract job description from the URL.")
+                    
             except Exception as e:
-                st.error(f"Error extracting job details: {str(e)}")
+                st.error(f"Error processing job posting: {str(e)}")
     
-    # Generate email button
-    if st.session_state.job_data:
-        st.markdown("---")
-        generate_clicked = st.button("Generate Cold Email", type="primary")
-        
-        if generate_clicked:
-            with st.spinner("Generating your cold email..."):
-                try:
-                    st.session_state.email = generate_cold_email(
-                        st.session_state.job_data, 
-                        st.session_state.projects
-                    )
-                    st.success("Email generated successfully!")
-                    # Switch to the email tab
-                    st.switch_page("?tab=Generated%20Email")
-                except Exception as e:
-                    st.error(f"Error generating email: {str(e)}")
+    # Add some instructions
+    with st.expander("ℹ️ How to use this tool"):
+        st.write("""
+        1. Paste the URL of any job posting
+        2. The tool will extract the job description
+        3. It will analyze your portfolio projects and find the most relevant ones
+        4. Use these relevant projects to tailor your cover letter and resume
+        5. Replace the sample portfolio with your actual projects in app.py
+        """)
 
-with tab2:
-    st.markdown('<h2 class="sub-header">Generated Cold Email</h2>', unsafe_allow_html=True)
-    
-    if st.session_state.email:
-        st.markdown('<div class="success-box">', unsafe_allow_html=True)
-        st.markdown(st.session_state.email)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Copy to clipboard button
-        st.download_button(
-            label="Copy Email to Clipboard",
-            data=st.session_state.email,
-            file_name="cold_email.txt",
-            mime="text/plain"
-        )
-    else:
-        st.info("No email generated yet. Please parse a job URL first.")
-
-with tab3:
-    st.markdown("""
-    ## About Cold Email Generator
-    
-    This tool helps you create personalized cold emails for job applications by:
-    
-    1. **Parsing job postings** - Extracting key requirements and skills
-    2. **Matching with your portfolio** - Finding your most relevant projects
-    3. **Generating tailored emails** - Creating professional, personalized emails
-    
-    ### How It Works
-    
-    - Uses AI to analyze job descriptions
-    - Matches requirements with your portfolio projects
-    - Generates compelling emails that highlight your relevant experience
-    
-    ### Privacy Note
-    
-    - Your API key is only used during your session
-    - Job data is processed but not stored
-    - No personal data is collected or saved
-    """)
-
-# Footer
-st.markdown("---")
-st.markdown("<div style='text-align: center; color: #666;'>Cold Email Generator Tool • Built with Streamlit</div>", 
-            unsafe_allow_html=True)
+if __name__ == "__main__":
+    main()
 
