@@ -1,12 +1,21 @@
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 import re
 
 def extract_job_details(url):
-    """Simple job description extraction"""
+    """
+    Extract job details from a given URL using direct web scraping
+    """
     try:
-        response = requests.get(url, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
         
         # Remove unwanted elements
         for element in soup(['script', 'style', 'nav', 'footer', 'header']):
@@ -14,73 +23,59 @@ def extract_job_details(url):
         
         # Get text content
         text = soup.get_text()
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        return ' '.join(lines)
         
-    except:
-        return "Could not extract job details"
+        # Clean up text
+        lines = (line.strip() for line in text.splitlines())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        text = ' '.join(chunk for chunk in chunks if chunk)
+        
+        # Try to extract job title from URL or page title
+        title = extract_job_title(soup, url)
+        
+        return {
+            'title': title,
+            'description': text,
+            'url': url,
+            'source': urlparse(url).netloc
+        }
+        
+    except Exception as e:
+        raise Exception(f"Failed to extract job details: {str(e)}")
 
-def extract_key_info(job_text):
-    """Extract key information from job description"""
-    job_lower = job_text.lower()
+def extract_job_title(soup, url):
+    """
+    Extract job title from various possible locations
+    """
+    # Try from title tag
+    title_tag = soup.find('title')
+    if title_tag:
+        title_text = title_tag.get_text().strip()
+        # Common job title patterns
+        patterns = [
+            r'hiring:\s*(.+)',
+            r'careers:\s*(.+)',
+            r'job:\s*(.+)',
+            r'position:\s*(.+)',
+            r'-.+?-\s*(.+)'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, title_text, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
     
-    # Extract role
-    role = extract_role(job_lower)
+    # Try from h1 tags
+    h1_tags = soup.find_all('h1')
+    for h1 in h1_tags:
+        h1_text = h1.get_text().strip()
+        if len(h1_text) < 100 and any(keyword in h1_text.lower() for keyword in ['engineer', 'developer', 'manager', 'analyst', 'designer']):
+            return h1_text
     
-    # Extract experience
-    experience = extract_experience(job_lower)
+    # Fallback to URL parsing
+    path = urlparse(url).path
+    if '/' in path:
+        last_part = path.split('/')[-1]
+        if last_part and len(last_part) > 3:
+            return last_part.replace('-', ' ').title()
     
-    # Extract skills
-    skills = extract_skills(job_lower)
-    
-    return {
-        'role': role,
-        'experience': experience,
-        'skills': skills
-    }
-
-def extract_role(job_text):
-    """Extract job role"""
-    role_patterns = [
-        r'looking for a (.+?)(?:developer|engineer|analyst|designer|manager)',
-        r'position:\s*(.+?)\n',
-        r'role:\s*(.+?)\n',
-        r'job title:\s*(.+?)\n'
-    ]
-    
-    for pattern in role_patterns:
-        match = re.search(pattern, job_text, re.IGNORECASE)
-        if match:
-            return match.group(1).strip().title()
-    
-    return "Software Developer"
-
-def extract_experience(job_text):
-    """Extract experience requirement"""
-    exp_patterns = [
-        r'(\d+)[+\-]?\s*years?',
-        r'experience.*?(\d+)[+\-]?\s*years?',
-        r'(\d+)[+\-]?\s*yr'
-    ]
-    
-    for pattern in exp_patterns:
-        match = re.search(pattern, job_text, re.IGNORECASE)
-        if match:
-            return f"{match.group(1)}+ years"
-    
-    return "Not specified"
-
-def extract_skills(job_text):
-    """Extract required skills"""
-    common_skills = [
-        'python', 'javascript', 'java', 'react', 'node', 'sql', 'html', 'css',
-        'aws', 'docker', 'kubernetes', 'machine learning', 'data analysis',
-        'typescript', 'angular', 'vue', 'django', 'flask', 'fastapi'
-    ]
-    
-    found_skills = []
-    for skill in common_skills:
-        if skill in job_text:
-            found_skills.append(skill.title())
-    
-    return found_skills[:5]  # Return top 5 skills
+    return "Unknown Position"
