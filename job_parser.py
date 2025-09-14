@@ -1,39 +1,14 @@
-# job_parser.py (updated version)
-import requests
-from bs4 import BeautifulSoup
-import json
+from langchain_community.document_loaders import WebBaseLoader
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+import json
 
 def extract_job_details(url):
-    """Extract job details from a URL using requests and BeautifulSoup"""
-    try:
-        # Fetch webpage content
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        # Parse HTML content
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Remove script and style elements
-        for script in soup(["script", "style"]):
-            script.decompose()
-        
-        # Get text content
-        page_data = soup.get_text(separator='\n', strip=True)
-        
-    except Exception as e:
-        # Fallback: return a basic structure if scraping fails
-        return {
-            "role": "Software Developer",
-            "experience": "2+ years",
-            "skills": ["Python", "JavaScript", "Problem Solving"],
-            "description": "Job description could not be extracted from the URL."
-        }
+    """Extract job details from a URL"""
+    # Load the webpage content
+    loader = WebBaseLoader(url)
+    page_data = loader.load().pop().page_content
     
     # Initialize LLM
     llm = ChatGroq(
