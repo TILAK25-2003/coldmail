@@ -1,9 +1,11 @@
-# app.py (updated imports section)
-import streamlit as st
-import os
-import sys
-import traceback
-
+# Add to the top of app.py (after imports)
+try:
+    from job_parser import extract_job_details
+    from portfolio_matcher import find_relevant_projects
+    from email_generator import generate_cold_email
+except ImportError as e:
+    st.error(f"Import Error: {e}. Please make sure all dependencies are installed.")
+    st.stop()
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -18,7 +20,7 @@ except ImportError as e:
             "role": "Software Developer",
             "experience": "2+ years",
             "skills": ["Python", "JavaScript", "Problem Solving"],
-            "description": "Job description extraction is currently unavailable."
+            "description": "Job description extractio# Add to the top of app.py (after imports) is currently unavailable."
         }
 
 try:
@@ -55,3 +57,4 @@ except ImportError as e:
         """
 
 # The rest of your app.py remains the same...
+
