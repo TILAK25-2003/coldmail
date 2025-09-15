@@ -1,42 +1,56 @@
-def generate_cold_email(your_name, company_name, hiring_manager, job_role, job_skills, relevant_projects, job_description):
-    """Generate a cold email based on job details"""
-    
-    # Skills string
-    skills_str = ', '.join(job_skills) if job_skills else "various technologies"
-    
-    # Projects string
-    if relevant_projects:
-        projects_text = "\n".join([
-            f"- {proj['name']}: {proj['description']}" 
-            for proj in relevant_projects[:2]  # Max 2 projects
-        ])
-    else:
-        projects_text = "I have worked on several relevant projects that demonstrate my capabilities."
-    
-    email = f"""Subject: Application for {job_role} Position at {company_name}
+# email_generator.py
+import os
+from langchain_groq import ChatGroq
+from langchain_core.prompts import PromptTemplate
 
-Dear {hiring_manager},
+def generate_cold_email(job_data, profile_skills, projects):
+    """
+    job_data: dict from extract_job_details
+    profile_skills: list of user's extracted skills
+    projects: list of projects (title, description, link) that matched
+    Returns string email text.
+    """
+    groq_key = os.environ.get("GROQ_API_KEY")
+    if not groq_key:
+        raise RuntimeError("GROQ_API_KEY missing")
 
-I am writing to express my interest in the {job_role} position at {company_name}. I was excited to see your posting and believe my skills and experience align well with your requirements.
+    llm = ChatGroq(model_name="llama-3.3-70b-versatile", temperature=0.7)
 
-I have experience with {skills_str} and have successfully delivered projects such as:
-{projects_text}
+    projects_section = ""
+    if projects:
+        for i, p in enumerate(projects, 1):
+            projects_section += f"{i}. {p.get('title')} — {p.get('link', '')}\n   {p.get('description','')}\n"
 
-From your job description, I understand you're looking for someone with expertise in {skills_str}. My background includes:
+    prompt = PromptTemplate.from_template("""
+    You are an expert career advisor writing a cold email for a candidate applying to a specific job.
+    Use the following data and create:
+    - a subject line
+    - a short polite greeting
+    - 3 short paragraphs: intro + relevant skills+projects + call-to-action
+    - a professional sign-off
+    Keep it ~180-260 words, confident but not pushy.
 
-- Developing solutions using {skills_str}
-- Collaborating with cross-functional teams
-- Delivering high-quality software on time
+    JOB:
+    Role: {role}
+    Experience: {experience}
+    Key skills: {skills}
+    Description summary: {description}
 
-I am particularly impressed by {company_name}'s work and would be thrilled to contribute to your team.
+    CANDIDATE (extracted):
+    Skills: {profile_skills}
+    Matched projects:
+    {projects_section}
 
-I would welcome the opportunity to discuss how my skills can benefit {company_name}. Thank you for considering my application.
-
-Best regards,
-{your_name}
-{your_name.replace(' ', '').lower()}@email.com
-+1 (555) 123-4567
-LinkedIn: linkedin.com/in/{your_name.replace(' ', '').lower()}
-"""
-
-    return email
+    Produce the email (subject + body). Do NOT include anything else.
+    """)
+    chain = prompt | llm
+    resp = chain.invoke({
+        "role": job_data.get("role",""),
+        "experience": job_data.get("experience",""),
+        "skills": ", ".join(job_data.get("skills", [])),
+        "description": job_data.get("description",""),
+        "profile_skills": ", ".join(profile_skills),
+        "projects_section": projects_section
+    })
+    # resp.content contains the text result
+    return resp.content
