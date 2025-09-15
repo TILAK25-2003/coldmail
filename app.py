@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import re
+import traceback
 
 try:
     from job_parser import extract_job_details
@@ -124,8 +125,12 @@ with tab1:
             try:
                 profile_urls = []
                 if linkedin_url:
+                    if not linkedin_url.startswith(('http://', 'https://')):
+                        linkedin_url = 'https://' + linkedin_url
                     profile_urls.append(("linkedin", linkedin_url))
                 if github_url:
+                    if not github_url.startswith(('http://', 'https://')):
+                        github_url = 'https://' + github_url
                     profile_urls.append(("github", github_url))
                 
                 st.session_state.profile_data = extract_skills_from_profiles(profile_urls)
@@ -143,6 +148,7 @@ with tab1:
                 
             except Exception as e:
                 st.error(f"Error analyzing profiles: {str(e)}")
+                st.error("Please check if the URLs are valid and accessible.")
     
     # Manual skills input as fallback
     st.markdown("---")
@@ -186,6 +192,9 @@ with tab2:
         else:
             with st.spinner("Extracting job details..."):
                 try:
+                    if not job_url.startswith(('http://', 'https://')):
+                        job_url = 'https://' + job_url
+                    
                     st.session_state.job_data = extract_job_details(job_url)
                     
                     # If we have user skills, find relevant projects
@@ -242,6 +251,7 @@ with tab2:
                 
                 except Exception as e:
                     st.error(f"Error extracting job details: {str(e)}")
+                    st.error("Please check if the URL is valid and accessible.")
     
     # Generate email button
     if st.session_state.job_data:
