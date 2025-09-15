@@ -1,11 +1,7 @@
-import os
-import re
-import requests
 import streamlit as st
-from bs4 import BeautifulSoup
-from groq import Groq
-from urllib.parse import urlparse
-import json
+import time
+from scraper import JobScraper
+from email_generator import EmailGenerator
 
 # Set page configuration
 st.set_page_config(
@@ -15,288 +11,181 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better UI
+# Initialize session state
+if 'job_details' not in st.session_state:
+    st.session_state.job_details = None
+if 'email_generated' not in st.session_state:
+    st.session_state.email_generated = False
+if 'user_context' not in st.session_state:
+    st.session_state.user_context = {
+        "name": "",
+        "background": "",
+        "skills": ""
+    }
+
+# Custom CSS for better styling
 st.markdown("""
 <style>
     .main-header {
         font-size: 3rem;
-        color: #1f77b4;
+        color: #1E88E5;
         text-align: center;
         margin-bottom: 2rem;
     }
     .sub-header {
         font-size: 1.5rem;
-        color: #1f77b4;
+        color: #0D47A1;
         margin-bottom: 1rem;
     }
     .success-box {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 20px;
+        background-color: #E8F5E9;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 0.5rem solid #4CAF50;
     }
     .error-box {
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 20px;
+        background-color: #FFEBEE;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 0.5rem solid #F44336;
     }
     .info-box {
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
-        border-radius: 5px;
-        padding: 15px;
-        margin-bottom: 20px;
+        background-color: #E3F2FD;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 0.5rem solid #2196F3;
     }
-    .generated-email {
-        background-color: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 5px;
-        padding: 20px;
-        margin-top: 20px;
-        white-space: pre-wrap;
+    .stButton button {
+        background-color: #1E88E5;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+    }
+    .stButton button:hover {
+        background-color: #0D47A1;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize Groq client
-def initialize_groq_client():
-    if 'GROQ_API_KEY' in st.secrets:
-        api_key = st.secrets['GROQ_API_KEY']
-    else:
-        api_key = st.sidebar.text_input("Enter your Groq API Key:", type="password")
-    
-    if not api_key:
-        st.sidebar.warning("Please enter your Groq API key to continue")
-        st.stop()
-    
-    try:
-        client = Groq(api_key=api_key)
-        return client
-    except Exception as e:
-        st.sidebar.error(f"Error initializing Groq client: {str(e)}")
-        st.stop()
+# App title
+st.markdown('<h1 class="main-header">✉️ Cold Email Generator</h1>', unsafe_allow_html=True)
+st.markdown("Generate personalized cold emails for job applications using AI")
 
-# Validate URL format
-def is_valid_url(url):
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
-
-# Extract text from URL
-def extract_text_from_url(url):
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+# Sidebar for user input
+with st.sidebar:
+    st.markdown("### 🔑 API Configuration")
+    st.info("Make sure to set your GROQ_API_KEY in the .env file")
+    
+    st.markdown("### 👤 Your Information")
+    name = st.text_input("Your Name", value=st.session_state.user_context["name"])
+    background = st.text_area("Your Background/Experience", value=st.session_state.user_context["background"])
+    skills = st.text_area("Your Key Skills", value=st.session_state.user_context["skills"])
+    
+    if name or background or skills:
+        st.session_state.user_context = {
+            "name": name,
+            "background": background,
+            "skills": skills
         }
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Remove script and style elements
-        for script in soup(["script", "style"]):
-            script.decompose()
-        
-        # Get text
-        text = soup.get_text()
-        
-        # Clean up text
-        lines = (line.strip() for line in text.splitlines())
-        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-        text = ' '.join(chunk for chunk in chunks if chunk)
-        
-        return text[:10000]  # Limit text to avoid token limits
-    except Exception as e:
-        st.error(f"Error extracting text from URL: {str(e)}")
-        return None
 
-# Extract job details using LLM
-def extract_job_details(client, text):
-    prompt = f"""
-    Extract the following information from this job posting text. If information is not available, say "Not specified".
-    
-    Return the information in JSON format with these keys:
-    - job_role
-    - experience_required
-    - technical_skills
-    - non_technical_skills
-    - portfolio_projects
-    - company_name
-    
-    Job Posting Text:
-    {text}
-    """
-    
-    try:
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert at extracting structured information from job postings. Always return valid JSON."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model="llama-3.1-8b-instant",  # You can change this to other Groq models
-            temperature=0.1,
-            max_tokens=1024,
-            top_p=1,
-            stream=False,
-            response_format={"type": "json_object"}
-        )
-        
-        response = chat_completion.choices[0].message.content
-        return json.loads(response)
-    except Exception as e:
-        st.error(f"Error extracting job details: {str(e)}")
-        return None
+# Main content
+tab1, tab2 = st.tabs(["📝 Generate Email", "ℹ️ How It Works"])
 
-# Generate cold email using LLM
-def generate_cold_email(client, job_details, user_inputs):
-    prompt = f"""
-    Generate a professional cold email for a job application based on the following job details and applicant information.
+with tab1:
+    st.markdown('<div class="sub-header">Enter Job URL</div>', unsafe_allow_html=True)
     
-    Job Details:
-    {json.dumps(job_details, indent=2)}
+    job_url = st.text_input("Paste the job posting URL here:", placeholder="https://example.com/jobs/software-engineer")
     
-    Applicant Information:
-    - Name: {user_inputs['name']}
-    - Background: {user_inputs['background']}
-    - Specific skills/expertise: {user_inputs['skills']}
-    - Why interested in this role: {user_inputs['interest_reason']}
-    
-    Requirements:
-    - The email should be professional but not overly formal
-    - Highlight how the applicant's skills match the job requirements
-    - Mention specific projects or experiences that relate to the job
-    - Keep it concise (around 200-300 words)
-    - Include a subject line
-    - Format the email properly with greeting, body, and closing
-    - Do not make up information that isn't provided
-    """
-    
-    try:
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert career coach who helps job applicants write compelling cold emails for job applications."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            model="llama-3.1-8b-instant",
-            temperature=0.7,
-            max_tokens=1024,
-            top_p=1,
-            stream=False,
-        )
-        
-        return chat_completion.choices[0].message.content
-    except Exception as e:
-        st.error(f"Error generating cold email: {str(e)}")
-        return None
-
-# Main application
-def main():
-    st.markdown('<h1 class="main-header">✉️ Cold Email Generator</h1>', unsafe_allow_html=True)
-    st.markdown("Generate personalized cold emails for job applications based on the job posting URL.")
-    
-    # Initialize Groq client
-    client = initialize_groq_client()
-    
-    # Sidebar for inputs
-    with st.sidebar:
-        st.header("Job Details")
-        job_url = st.text_input("Job Posting URL:", placeholder="https://example.com/job-posting")
-        
-        st.header("Your Information")
-        name = st.text_input("Your Name:", placeholder="John Doe")
-        background = st.text_area("Your Background:", placeholder="Brief description of your professional background...")
-        skills = st.text_area("Your Key Skills:", placeholder="List your key skills relevant to this job...")
-        interest_reason = st.text_area("Why are you interested in this role?", placeholder="Explain why you're interested in this specific role...")
-        
-        generate_btn = st.button("Generate Cold Email", type="primary", use_container_width=True)
-    
-    # Main content area
-    col1, col2 = st.columns([1, 1])
-    
+    col1, col2 = st.columns([1, 3])
     with col1:
-        st.markdown('<div class="info-box">', unsafe_allow_html=True)
-        st.markdown("### How it works:")
-        st.markdown("1. Enter the URL of the job posting")
-        st.markdown("2. Provide your personal information")
-        st.markdown("3. Click 'Generate Cold Email'")
-        st.markdown("4. The AI will analyze the job and create a personalized email")
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        if job_url and not is_valid_url(job_url):
-            st.markdown('<div class="error-box">Please enter a valid URL</div>', unsafe_allow_html=True)
+        generate_btn = st.button("🚀 Generate Email", use_container_width=True)
     
-    with col2:
-        if generate_btn:
-            if not job_url:
-                st.markdown('<div class="error-box">Please enter a job posting URL</div>', unsafe_allow_html=True)
-            elif not is_valid_url(job_url):
-                st.markdown('<div class="error-box">Please enter a valid URL</div>', unsafe_allow_html=True)
-            elif not all([name, background, skills, interest_reason]):
-                st.markdown('<div class="error-box">Please fill in all your information</div>', unsafe_allow_html=True)
+    if generate_btn and job_url:
+        with st.spinner("Analyzing job posting and generating email..."):
+            # Initialize scraper and extract job details
+            scraper = JobScraper()
+            job_details, error = scraper.extract_job_details(job_url)
+            
+            if error:
+                st.markdown(f'<div class="error-box">❌ {error}</div>', unsafe_allow_html=True)
             else:
-                with st.spinner("Analyzing job posting..."):
-                    # Extract text from URL
-                    page_text = extract_text_from_url(job_url)
+                st.session_state.job_details = job_details
+                
+                # Display extracted job details
+                st.markdown(f'<div class="success-box">✅ Successfully extracted job details!</div>', unsafe_allow_html=True)
+                
+                with st.expander("View Extracted Job Details"):
+                    st.json(job_details)
+                
+                # Generate email
+                email_gen = EmailGenerator()
+                email_content = email_gen.generate_email(job_details, st.session_state.user_context)
+                
+                if email_content.startswith("Error"):
+                    st.markdown(f'<div class="error-box">❌ {email_content}</div>', unsafe_allow_html=True)
+                else:
+                    st.session_state.email_generated = True
+                    st.session_state.email_content = email_content
                     
-                    if not page_text:
-                        st.markdown('<div class="error-box">Could not extract text from the URL. Please check if the URL is correct and accessible.</div>', unsafe_allow_html=True)
-                    else:
-                        # Extract job details
-                        job_details = extract_job_details(client, page_text)
-                        
-                        if job_details:
-                            st.markdown('<div class="success-box">Successfully extracted job details!</div>', unsafe_allow_html=True)
-                            
-                            with st.expander("View Extracted Job Details"):
-                                st.json(job_details)
-                            
-                            # Prepare user inputs
-                            user_inputs = {
-                                'name': name,
-                                'background': background,
-                                'skills': skills,
-                                'interest_reason': interest_reason
-                            }
-                            
-                            # Generate cold email
-                            with st.spinner("Generating cold email..."):
-                                cold_email = generate_cold_email(client, job_details, user_inputs)
-                                
-                                if cold_email:
-                                    st.markdown("### Generated Cold Email")
-                                    st.markdown('<div class="generated-email">', unsafe_allow_html=True)
-                                    st.markdown(cold_email)
-                                    st.markdown('</div>', unsafe_allow_html=True)
-                                    
-                                    # Add download button
-                                    st.download_button(
-                                        label="Download Email",
-                                        data=cold_email,
-                                        file_name="cold_email.txt",
-                                        mime="text/plain"
-                                    )
-                                else:
-                                    st.markdown('<div class="error-box">Failed to generate cold email. Please try again.</div>', unsafe_allow_html=True)
-                        else:
-                            st.markdown('<div class="error-box">Failed to extract job details. The URL might not contain a valid job posting or the format is not supported.</div>', unsafe_allow_html=True)
+                    # Display the generated email
+                    st.markdown("### 📧 Generated Email")
+                    st.text_area("Email Content", email_content, height=300)
+                    
+                    # Download button
+                    st.download_button(
+                        label="📥 Download Email",
+                        data=email_content,
+                        file_name="cold_email.txt",
+                        mime="text/plain"
+                    )
 
-# Run the app
-if __name__ == "__main__":
-    main()
+with tab2:
+    st.markdown("""
+    ## How to Use the Cold Email Generator
+    
+    1. **Get a Groq API Key**: 
+        - Sign up at [GroqCloud](https://console.groq.com/)
+        - Create an API key from your dashboard
+        - Create a `.env` file in the project directory and add:
+          ```
+          GROQ_API_KEY=your_api_key_here
+          ```
+    
+    2. **Enter Your Information**:
+        - Fill in your name, background, and skills in the sidebar
+        - This helps personalize the generated email
+    
+    3. **Paste Job URL**:
+        - Copy the URL of the job posting you're interested in
+        - Paste it into the input field on the main tab
+    
+    4. **Generate Email**:
+        - Click the "Generate Email" button
+        - The system will analyze the job posting and create a personalized email
+    
+    5. **Review and Download**:
+        - Review the generated email
+        - Make any necessary adjustments
+        - Download or copy the email for your use
+    
+    ## Supported Job Platforms
+    
+    This tool works best with job postings that have clear text content. It may have limitations with:
+    - Job platforms that require login
+    - PDF job descriptions
+    - Complex JavaScript-rendered pages
+    
+    For best results, use direct links to job postings on company career pages.
+    """)
+
+# Footer
+st.markdown("---")
+st.markdown(
+    "<div style='text-align: center; color: #666;'>"
+    "Cold Email Generator powered by Groq Cloud | Built with Streamlit"
+    "</div>",
+    unsafe_allow_html=True
+)
+
