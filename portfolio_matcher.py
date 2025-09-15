@@ -1,14 +1,10 @@
-import chromadb
 import pandas as pd
-import uuid
 import os
+from sentence_transformers import SentenceTransformer, util
+import numpy as np
 
-# Initialize ChromaDB
-def initialize_vectorstore():
-    """Initialize or load the vector store"""
-    client = chromadb.PersistentClient(path="vectorstore")
-    collection = client.get_or_create_collection(name="portfolio")
-    return collection
+# Load a lightweight sentence transformer model
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def load_portfolio_data():
     """Load portfolio data from CSV or create default if not exists"""
@@ -46,48 +42,33 @@ def load_portfolio_data():
     
     return df
 
-def setup_portfolio_collection():
-    """Set up the portfolio collection in ChromaDB"""
-    collection = initialize_vectorstore()
-    df = load_portfolio_data()
-    
-    # Only add documents if collection is empty
-    if collection.count() == 0:
-        docs = df["Techstack"].astype(str).tolist()
-        metadatas = [{"links": str(link)} for link in df["Links"].tolist()]
-        ids = [str(uuid.uuid4()) for _ in range(len(docs))]
-        
-        collection.add(
-            documents=docs,
-            metadatas=metadatas,
-            ids=ids
-        )
-        print(f"Added {len(docs)} portfolio items to vector store")
-    
-    return collection
-
 def find_relevant_projects(job_skills, user_skills, n_results=3):
-    """Find relevant projects based on skills"""
-    collection = setup_portfolio_collection()
+    """Find relevant projects based on skills using semantic similarity"""
+    df = load_portfolio_data()
     
     # Combine job skills and user skills for better matching
     query_skills = list(set(job_skills + user_skills))
-    
-    # Create a query from skills
     query_text = " ".join(query_skills) if isinstance(query_skills, list) else str(query_skills)
     
-    # Query the collection
-    results = collection.query(
-        query_texts=[query_text],
-        n_results=n_results
-    )
+    # Encode the query
+    query_embedding = model.encode(query_text, convert_to_tensor=True)
+    
+    # Encode all portfolio items
+    portfolio_items = df["Techstack"].astype(str).tolist()
+    portfolio_embeddings = model.encode(portfolio_items, convert_to_tensor=True)
+    
+    # Calculate similarity
+    similarities = util.pytorch_cos_sim(query_embedding, portfolio_embeddings)[0]
+    
+    # Get top n results
+    top_indices = np.argsort(similarities.cpu().numpy())[-n_results:][::-1]
     
     # Format results
     relevant_projects = []
-    for i, doc in enumerate(results['documents'][0]):
+    for idx in top_indices:
         relevant_projects.append({
-            "document": doc,
-            "metadata": results['metadatas'][0][i]
+            "document": portfolio_items[idx],
+            "metadata": {"links": df.iloc[idx]["Links"]}
         })
     
     return relevant_projects
