@@ -1,0 +1,38 @@
+{
+    "greetings": [
+        "Dear Hiring Team,",
+        "Hello,",
+        "Greetings,",
+        "Dear Recruiter,"
+    ],
+    "introductions": [
+        "I am writing to express my interest in the {role} position I found on your website.",
+        "I was excited to see the opening for a {role} at your company.",
+        "I am reaching out regarding the {role} opportunity at your organization."
+    ],
+    "company_praise": [
+        "I've been following your company's work and am impressed by your innovative approach.",
+        "Your company's reputation in the industry is highly regarded.",
+        "I admire your company's commitment to excellence and innovation."
+    ],
+    "value_propositions": [
+        "With my experience in {skills}, I believe I can contribute significantly to your team.",
+        "My background in {skills} aligns perfectly with the requirements for this role.",
+        "I possess the {skills} expertise that would allow me to hit the ground running in this position."
+    ],
+    "portfolio_mentions": [
+        "You can see examples of my work in these relevant projects: {links}",
+        "I've worked on similar projects such as: {links}",
+        "My portfolio includes relevant work like: {links}"
+    ],
+    "call_to_actions": [
+        "I would welcome the opportunity to discuss how my skills can benefit your team.",
+        "I am available for an interview at your earliest convenience.",
+        "I look forward to the possibility of discussing this opportunity further."
+    ],
+    "closings": [
+        "Sincerely,",
+        "Best regards,",
+        "Thank you for your consideration,"
+    ]
+}
