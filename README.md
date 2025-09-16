@@ -19,7 +19,7 @@ In today's competitive job market, personalized outreach can make the difference
 | 💼 Customizable User Profile** | Personalize emails with your professional information |
 | 📤 Export Ready** | Easy download and copy functionality for generated emails |
 
-![COLDFLOW Interface](assets/interface.png)
+![COLDFLOW Interface](assets/interface.jpg)
 
 Application interface screenshot
 
@@ -41,9 +41,9 @@ Application interface screenshot
 - Candidate Outreach: Template for reaching out to potential candidates
 - Standardized Communication: Maintain professional standards in all correspondence
 
-![Usage Demo](assets/demo.png)
-![](assets/demo1.png)
-![](assets/demo2.png)
+![Usage Demo](assets/demo.jpg)
+![](assets/demo1.jpg)
+![](assets/demo2.jpg)
 *Example of generated email output*
 
  🛠️ Installation & Usage
@@ -76,12 +76,10 @@ Option B: Manually input job details for complete control
 
 9)Download the email as a text file or copy directly to clipboards for immediate use
 
-https://assets/steps.jpeg
-Step-by-step usage guide
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ARCHITECTURE ->
-![Hand drawn representation](assets/architecture.png)
+![Hand drawn representation](assets/architecture.jpg)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -149,6 +147,7 @@ We would like to thank:
 -> Job Seekers Worldwide who provided feedback and inspiration for this tool
 
 -> Career Coaches and HR Professionals who helped validate the approach and templates
+
 
 
 
