@@ -2,8 +2,7 @@
 import re
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
-import time
+from urllib.parse import urlparse
 
 class SimpleScraper:
     def __init__(self):
