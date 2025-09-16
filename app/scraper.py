@@ -1,105 +1,217 @@
 # scraper.py
 import re
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+import time
 
 class SimpleScraper:
     def __init__(self):
-        self.company_mapping = {
-            'spencer': 'Spencer Technologies',
-            'google': 'Google',
-            'microsoft': 'Microsoft',
-            'amazon': 'Amazon',
-            'apple': 'Apple',
-            'ibm': 'IBM',
-            'facebook': 'Meta',
-            'netflix': 'Netflix',
-            'twitter': 'X Corp',
-            'linkedin': 'LinkedIn',
-            'salesforce': 'Salesforce',
-            'oracle': 'Oracle',
-            'adobe': 'Adobe',
-            'intel': 'Intel',
-            'nvidia': 'NVIDIA'
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
+        self.session = requests.Session()
+        self.session.headers.update(self.headers)
     
     def _extract_company_from_url(self, url):
         """Extract company name from URL"""
-        domain = re.findall(r'https?://(?:www\.)?([^/]+)', url)
-        if domain:
-            domain_name = domain[0].split('.')[0]
-            return self.company_mapping.get(domain_name.lower(), domain_name.title() + " Inc.")
-        return "Respected Organization"
+        try:
+            domain = urlparse(url).netloc
+            company_name = domain.split('.')[-2]  # Get second-level domain
+            return company_name.title()
+        except:
+            return "The Company"
+    
+    def _clean_text(self, text):
+        """Clean and normalize text"""
+        if not text:
+            return ""
+        text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces
+        text = re.sub(r'\n+', ' ', text)   # Replace newlines
+        return text.strip()
+    
+    def _extract_role(self, soup, url):
+        """Extract job role from page content"""
+        # Common selectors for job titles
+        role_selectors = [
+            'h1[class*="job"][class*="title"]',
+            'h1[class*="position"][class*="title"]',
+            '.job-title',
+            '.position-title',
+            '[data-cy="job-title"]',
+            'h1',
+            'title'
+        ]
+        
+        for selector in role_selectors:
+            elements = soup.select(selector)
+            for element in elements:
+                text = self._clean_text(element.get_text())
+                if text and len(text) > 5 and len(text) < 100:
+                    if any(word in text.lower() for word in ['job', 'career', 'position', 'role']):
+                        continue  # Skip if it contains meta words
+                    return text
+        
+        # Fallback: try to extract from URL or page title
+        title = soup.find('title')
+        if title:
+            title_text = self._clean_text(title.get_text())
+            # Remove common suffixes
+            for suffix in [' - Careers', ' - Jobs', ' | Careers', ' | Jobs']:
+                if suffix in title_text:
+                    return title_text.split(suffix)[0]
+            return title_text
+        
+        return "Professional Role"
+    
+    def _extract_experience(self, soup):
+        """Extract experience requirements"""
+        experience_patterns = [
+            r'experience.*?(\d+[\+\-]?\d*.*?years?)',
+            r'(\d+[\+\-]?\d*.*?years?.*?experience)',
+            r'minimum.*?(\d+).*?years',
+            r'(\d+\+?)\s*years',
+            r'experience.*?(\d+\+?)',
+        ]
+        
+        text = soup.get_text().lower()
+        
+        for pattern in experience_patterns:
+            matches = re.finditer(pattern, text, re.IGNORECASE | re.DOTALL)
+            for match in matches:
+                exp_text = self._clean_text(match.group(1))
+                if exp_text and len(exp_text) < 50:
+                    return exp_text.title()
+        
+        return "Experience varies"
+    
+    def _extract_skills(self, soup):
+        """Extract required skills"""
+        skill_keywords = [
+            'python', 'javascript', 'java', 'react', 'node', 'sql', 'cloud', 'aws', 'azure',
+            'docker', 'kubernetes', 'machine learning', 'ai', 'data analysis', 'communication',
+            'leadership', 'management', 'excel', 'word', 'powerpoint', 'project management',
+            'agile', 'scrum', 'marketing', 'sales', 'customer service', 'technical', 'design',
+            'development', 'programming', 'coding', 'analytics', 'finance', 'accounting',
+            'hr', 'human resources', 'recruitment', 'training', 'education', 'healthcare',
+            'engineering', 'manufacturing', 'logistics', 'supply chain', 'retail', 'ecommerce'
+        ]
+        
+        text = soup.get_text().lower()
+        found_skills = []
+        
+        # Look for skills sections
+        skill_section_selectors = [
+            '.skills', '.requirements', '.qualifications', '.responsibilities',
+            '[class*="skill"]', '[class*="requirement"]', '[class*="qualification"]'
+        ]
+        
+        skill_text = ""
+        for selector in skill_section_selectors:
+            elements = soup.select(selector)
+            for element in elements:
+                skill_text += " " + element.get_text().lower()
+        
+        if not skill_text:
+            skill_text = text
+        
+        # Extract skills
+        for skill in skill_keywords:
+            if skill in skill_text and skill not in found_skills:
+                found_skills.append(skill)
+        
+        return ', '.join(found_skills[:8]) if found_skills else "Various relevant skills"
+    
+    def _extract_description(self, soup):
+        """Extract job description"""
+        description_selectors = [
+            '.job-description',
+            '.position-description',
+            '.description',
+            '[class*="description"]',
+            '.role-details',
+            '.job-details',
+            'section',
+            'div[class*="content"]'
+        ]
+        
+        description_text = ""
+        for selector in description_selectors:
+            elements = soup.select(selector)
+            for element in elements:
+                text = self._clean_text(element.get_text())
+                if len(text) > 100 and len(text) < 2000:
+                    description_text = text
+                    break
+        
+        if not description_text:
+            # Fallback: get meaningful text from the page
+            paragraphs = soup.find_all('p')
+            for p in paragraphs:
+                text = self._clean_text(p.get_text())
+                if len(text) > 50 and len(text) < 500:
+                    description_text = text
+                    break
+        
+        if not description_text:
+            description_text = "This position requires a qualified professional with relevant experience and skills."
+        
+        return description_text
     
     def scrape_job_info(self, url):
-        # Extract company name from URL
-        company = self._extract_company_from_url(url)
-        
-        # Return mock data based on URL content
-        url_lower = url.lower()
-        
-        # Technical roles
-        if any(keyword in url_lower for keyword in ['software', 'developer', 'engineer', 'programmer']):
+        """Main method to scrape job information from URL"""
+        try:
+            # Validate URL
+            if not url.startswith(('http://', 'https://')):
+                return {
+                    'error': 'Invalid URL format. Please include http:// or https://'
+                }
+            
+            # Fetch the webpage
+            response = self.session.get(url, timeout=10)
+            response.raise_for_status()
+            
+            # Parse HTML
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Remove unwanted elements
+            for element in soup(['script', 'style', 'nav', 'footer', 'header']):
+                element.decompose()
+            
+            # Extract information
+            company = self._extract_company_from_url(url)
+            role = self._extract_role(soup, url)
+            experience = self._extract_experience(soup)
+            skills = self._extract_skills(soup)
+            description = self._extract_description(soup)
+            
             return {
-                'role': 'Senior Software Engineer',
-                'experience': '5+ years',
-                'skills': 'Python, JavaScript, React, Node.js, Cloud Architecture',
-                'description': 'Design and implement scalable software solutions while collaborating with cross-functional teams to deliver high-quality products.',
-                'company': company
+                'role': role,
+                'experience': experience,
+                'skills': skills,
+                'description': description,
+                'company': company,
+                'source': 'website',
+                'url': url
             }
-        elif any(keyword in url_lower for keyword in ['data', 'analyst', 'scientist']):
+            
+        except requests.exceptions.RequestException as e:
             return {
-                'role': 'Data Scientist',
-                'experience': '3+ years',
-                'skills': 'Python, SQL, Machine Learning, Data Visualization, Statistical Analysis',
-                'description': 'Develop predictive models and analyze complex datasets to drive business insights and support data-driven decision making.',
-                'company': company
+                'error': f'Failed to access the website: {str(e)}',
+                'role': 'Professional Role',
+                'experience': 'Experience varies',
+                'skills': 'Relevant skills',
+                'description': 'Could not extract job details from the URL.',
+                'company': self._extract_company_from_url(url),
+                'source': 'error_fallback'
             }
-        # Non-technical roles
-        elif any(keyword in url_lower for keyword in ['sales', 'account', 'business development']):
+        except Exception as e:
             return {
-                'role': 'Senior Account Executive',
-                'experience': '4+ years',
-                'skills': 'Enterprise Sales, Relationship Management, Negotiation, CRM',
-                'description': 'Drive revenue growth through strategic account management and develop long-term relationships with key enterprise clients.',
-                'company': company
-            }
-        elif any(keyword in url_lower for keyword in ['marketing', 'digital', 'social media']):
-            return {
-                'role': 'Marketing Manager',
-                'experience': '5+ years',
-                'skills': 'Digital Marketing, Brand Strategy, Campaign Management, Analytics',
-                'description': 'Develop and execute comprehensive marketing strategies to enhance brand presence and drive customer engagement.',
-                'company': company
-            }
-        elif any(keyword in url_lower for keyword in ['hr', 'human resources', 'recruitment']):
-            return {
-                'role': 'HR Business Partner',
-                'experience': '4+ years',
-                'skills': 'Talent Acquisition, Employee Relations, HR Strategy, Performance Management',
-                'description': 'Partner with business leaders to develop and implement HR strategies that support organizational objectives.',
-                'company': company
-            }
-        elif any(keyword in url_lower for keyword in ['finance', 'accounting', 'financial']):
-            return {
-                'role': 'Financial Analyst',
-                'experience': '3+ years',
-                'skills': 'Financial Modeling, Data Analysis, Excel, Reporting',
-                'description': 'Conduct financial analysis and prepare reports to support strategic planning and business decision making.',
-                'company': company
-            }
-        elif any(keyword in url_lower for keyword in ['manager', 'director', 'lead']):
-            return {
-                'role': 'Project Manager',
-                'experience': '6+ years',
-                'skills': 'Project Management, Agile Methodology, Team Leadership, Stakeholder Management',
-                'description': 'Lead cross-functional teams to deliver complex projects on time and within budget while ensuring quality standards.',
-                'company': company
-            }
-        else:
-            # Generic professional role
-            return {
-                'role': 'Professional Specialist',
-                'experience': '3+ years',
-                'skills': 'Strategic Planning, Problem Solving, Communication, Leadership',
-                'description': 'This position requires a professional with demonstrated expertise in delivering results in a dynamic business environment.',
-                'company': company
+                'error': f'An error occurred: {str(e)}',
+                'role': 'Professional Role',
+                'experience': 'Experience varies',
+                'skills': 'Relevant skills',
+                'description': 'Error extracting job information.',
+                'company': self._extract_company_from_url(url),
+                'source': 'error_fallback'
             }
