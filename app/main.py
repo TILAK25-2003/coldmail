@@ -147,7 +147,11 @@ def main():
                 with st.spinner("Extracting job information..."):
                     job_data = scraper.scrape_job_info(job_url)
                     
-                    if job_data:
+                    # Check for errors
+                    if 'error' in job_data:
+                        st.error(f"Error: {job_data['error']}")
+                        st.info("Please try a different URL or use manual input below.")
+                    else:
                         st.success("Job information extracted successfully!")
                         with st.expander("View Extracted Job Details"):
                             st.json(job_data)
@@ -155,6 +159,12 @@ def main():
                         # Get relevant portfolio links
                         skills = job_data.get('skills', '')
                         relevant_links = portfolio.query_links(skills)
+                        
+                        # Display relevant links
+                        if relevant_links:
+                            st.subheader("🔗 Relevant Portfolio Links")
+                            for link in relevant_links:
+                                st.write(f"- [{link['techstack']}]({link['links']}) (Similarity: {link.get('similarity', 0):.2f})")
                         
                         # Generate email
                         with st.spinner("Crafting your perfect cold email..."):
@@ -179,8 +189,6 @@ def main():
                                 if st.button("Copy to Clipboard", key="copy_url"):
                                     st.code(email, language=None)
                                     st.success("Email copied to clipboard!")
-                    else:
-                        st.error("Could not extract job information. Please try a different URL or use manual input.")
             else:
                 st.warning("Please enter a job URL")
     
