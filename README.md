@@ -20,6 +20,7 @@ In today's competitive job market, personalized outreach can make the difference
 | 📤 Export Ready** | Easy download and copy functionality for generated emails |
 
 ![COLDFLOW Interface](assets/interface.jpeg)
+(assets/interface1.jpeg)
 Application interface screenshot
 
  🚀 How It Helps in Real Life
@@ -48,31 +49,8 @@ Application interface screenshot
  Prerequisites
 - Python 3.8 or higher
 - pip (Python package manager)
-
- Installation Steps
-
-1. Clone the Repository
-   ```bash
-   git clone https://github.com/yourusername/coldflow.git
-   cd coldflow
-   
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  
-2. Create Virtual Environment (Recommended)
-bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-3. Install Dependencies
-bash
-pip install -r requirements.txt
-
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-4. Run the Application
-bash
-streamlit run app/main.py
-
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 HOW TO USE :
 
@@ -98,6 +76,10 @@ Option B: Manually input job details for complete control
 
 https://assets/steps.jpeg
 Step-by-step usage guide
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ARCHITECTURE ->
+(assets/architecture.jpeg)
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -112,10 +94,11 @@ coldflow/
 │   ├── utils.py             # Utility functions
 │   └── resource/
 │       └── my_portfolio.csv # Portfolio data
-├── assets/                  # Images for documentation
-│   ├── interface.jpeg
-│   ├── demo.jpeg
-│   ├── steps.jpeg
+├── assets/  # Images for documentation
+│   |--- architecture.jpeg
+├   |--- interface.jpeg
+│   |--- demo.jpeg
+│   |--- steps.jpeg
 │  
 ├── requirements.txt         # Python dependencies
 └── README.md               # This file
@@ -164,6 +147,7 @@ We would like to thank:
 -> Job Seekers Worldwide who provided feedback and inspiration for this tool
 
 -> Career Coaches and HR Professionals who helped validate the approach and templates
+
 
 
 
