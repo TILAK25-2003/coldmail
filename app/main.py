@@ -279,9 +279,9 @@ with tab1:
                     with st.spinner("Crafting your perfect cold email..."):
                         email = email_gen.generate_email(job_data, relevant_links, user_info)
 
-                        st.markdown("### ✨ Generated Cold Email")
+                        st.markdown("✨ Generated Cold Email")
                         st.markdown('<div class="generated-email-container">', unsafe_allow_html=True)
-                        
+    
                         # Display email content properly inside the container
                         st.markdown(f'<div class="email-content">{email}</div>', unsafe_allow_html=True)
                         
