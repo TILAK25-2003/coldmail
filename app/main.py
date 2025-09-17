@@ -51,12 +51,13 @@ def main():
         initial_sidebar_state="collapsed"
     )
     
-    # Custom CSS with new theme colors
+    # Custom CSS with new Stripe-style theme colors
     st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@700&family=Roboto:wght@400&display=swap" rel="stylesheet">
     <style>
     body {
-        background-color: #0A1828; /* Dark Classic Blue */
+        background: linear-gradient(135deg, #111439, #4A4E69, #6C63FF); /* Dark blue gradient */
+        color: #F8F8F9; /* White lilac text */
     }
     .bebas-neue-regular {
         font-family: "Bebas Neue", sans-serif;
@@ -65,7 +66,7 @@ def main():
     }
     .main-header {
         font-size: 5.5rem;
-        color: #BFA181; /* Gold */
+        color: #F8F8F9; /* White lilac */
         text-align: center;
         margin-bottom: 0.3rem;
         font-family: "Bebas Neue", sans-serif;
@@ -73,7 +74,7 @@ def main():
     }
     .sub-header {
         font-size: 1.2rem;
-        color: #178582; /* Turquoise */
+        color: #6C63FF; /* Accent gradient color */
         text-align: center;
         margin-top: 0rem;
         margin-bottom: 2rem;
@@ -82,29 +83,30 @@ def main():
         letter-spacing: 1px;
     }
     .user-section {
-        background-color: #178582; /* Turquoise */
+        background-color: #111439;
         padding: 1.5rem;
         border-radius: 0.5rem;
         margin-bottom: 2rem;
-        color: #FFFFFF;
+        color: #F8F8F9;
+        border-left: 4px solid #6C63FF;
     }
     .generated-email {
-        background-color: #0A1828; /* Dark Classic Blue */
+        background-color: #111439;
         padding: 1.5rem;
         border-radius: 0.5rem;
-        border-left: 4px solid #BFA181; /* Gold */
-        color: #FFFFFF;
+        border-left: 4px solid #6C63FF;
+        color: #F8F8F9;
     }
     .stButton button {
-        background-color: #BFA181; /* Gold */
-        color: #0A1828; /* Dark Blue text */
+        background-color: #6C63FF;
+        color: #F8F8F9;
         border-radius: 0.5rem;
         padding: 0.5rem 1rem;
         border: none;
         font-weight: bold;
     }
     .stButton button:hover {
-        background-color: #178582; /* Turquoise hover */
+        background-color: #4A4E69;
         color: #FFFFFF;
     }
     </style>
@@ -165,9 +167,9 @@ def main():
                         with job_col1:
                             st.markdown(
                                 f"""
-                                <div style='background-color: #178582; padding: 1.5rem; border-radius: 0.5rem; 
-                                            border-left: 4px solid #BFA181; color: #FFFFFF;'>
-                                    <h3 style='color: #BFA181; margin-top: 0;'>{job_data.get('role', 'Not specified')}</h3>
+                                <div style='background-color: #111439; padding: 1.5rem; border-radius: 0.5rem; 
+                                            border-left: 4px solid #6C63FF; color: #F8F8F9;'>
+                                    <h3 style='color: #6C63FF; margin-top: 0;'>{job_data.get('role', 'Not specified')}</h3>
                                     <p><strong>🏢 Company:</strong> {job_data.get('company', 'Not specified')}</p>
                                     <p><strong>📊 Experience:</strong> {job_data.get('experience', 'Not specified')}</p>
                                 </div>
@@ -178,8 +180,8 @@ def main():
                         with job_col2:
                             st.markdown(
                                 f"""
-                                <div style='background-color: #178582; padding: 1.5rem; border-radius: 0.5rem; 
-                                            color: #FFFFFF;'>
+                                <div style='background-color: #111439; padding: 1.5rem; border-radius: 0.5rem; 
+                                            color: #F8F8F9;'>
                                     <p><strong>🛠️ Required Skills:</strong></p>
                                     <p>{job_data.get('skills', 'Not specified')}</p>
                                     <p><strong>📝 Description:</strong></p>
@@ -198,10 +200,10 @@ def main():
                             for i, link in enumerate(relevant_links):
                                 st.markdown(
                                     f"""
-                                    <div style='background-color: #0A1828; padding: 1rem; border-radius: 0.5rem; 
-                                                margin-bottom: 0.5rem; color: #FFFFFF; border-left: 3px solid #BFA181;'>
+                                    <div style='background-color: #111439; padding: 1rem; border-radius: 0.5rem; 
+                                                margin-bottom: 0.5rem; color: #F8F8F9; border-left: 3px solid #6C63FF;'>
                                         <p style='margin: 0;'><strong>Item {i+1}:</strong> 
-                                        <a href="{link['links']}" target="_blank" style="color:#BFA181;">{link['links']}</a></p>
+                                        <a href="{link['links']}" target="_blank" style="color:#6C63FF;">{link['links']}</a></p>
                                         <p style='margin: 0; color: #E5E7EB;'>{link['techstack']}</p>
                                     </div>
                                     """,
@@ -214,7 +216,7 @@ def main():
                             
                             st.markdown("### ✨ Generated Cold Email")
                             st.markdown('<div class="generated-email">', unsafe_allow_html=True)
-                            st.text_area("Email Content", email, height=300, label_visibility="collapsed")
+                            st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_url")
                             st.markdown('</div>', unsafe_allow_html=True)
                             
                             # Actions
@@ -227,9 +229,16 @@ def main():
                                     mime="text/plain"
                                 )
                             with col2:
-                                if st.button("Copy to Clipboard"):
-                                    st.code(email, language=None)
-                                    st.success("Email copied to clipboard!")
+                                copy_code = f"""
+                                <script>
+                                function copyText() {{
+                                    navigator.clipboard.writeText(`{email}`);
+                                    alert("✅ Email copied to clipboard!");
+                                }}
+                                </script>
+                                <button onclick="copyText()" style="padding:8px 15px; border-radius:5px; background:#6C63FF; color:#fff; border:none; font-weight:bold; cursor:pointer;">📋 Copy to Clipboard</button>
+                                """
+                                st.markdown(copy_code, unsafe_allow_html=True)
                     else:
                         st.error("Could not extract job information. Please try a different URL or use manual input.")
             else:
@@ -262,7 +271,6 @@ def main():
                 }
                 
                 relevant_links = portfolio.query_links(skills_input)
-                
                 email = email_gen.generate_email(job_data, relevant_links, user_info)
                 
                 st.markdown("### ✨ Generated Cold Email")
@@ -280,16 +288,23 @@ def main():
                         key="manual_download"
                     )
                 with col2:
-                    if st.button("Copy to Clipboard", key="manual_copy"):
-                        st.code(email, language=None)
-                        st.success("Email copied to clipboard!")
+                    copy_code = f"""
+                    <script>
+                    function copyTextManual() {{
+                        navigator.clipboard.writeText(`{email}`);
+                        alert("✅ Email copied to clipboard!");
+                    }}
+                    </script>
+                    <button onclick="copyTextManual()" style="padding:8px 15px; border-radius:5px; background:#6C63FF; color:#fff; border:none; font-weight:bold; cursor:pointer;">📋 Copy to Clipboard</button>
+                    """
+                    st.markdown(copy_code, unsafe_allow_html=True)
             else:
                 st.warning("Please fill at least Job Role and Required Skills fields")
 
     # Footer
     st.markdown("---")
     st.markdown(
-        f"<div style='text-align: center; color: #BFA181;'>"
+        f"<div style='text-align: center; color: #F8F8F9;'>"
         "COLDFLOW • Professional Cold Email Generator • "
         f"© {datetime.now().year}</div>",
         unsafe_allow_html=True
@@ -297,3 +312,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
