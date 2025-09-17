@@ -159,7 +159,8 @@ def main():
                         with job_col1:
                             st.markdown(
                                 f"""
-                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid #3B82F6;'>
+                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem; 
+                                            border-left: 4px solid #3B82F6; color: #111827;'>
                                     <h3 style='color: #1E40AF; margin-top: 0;'>{job_data.get('role', 'Not specified')}</h3>
                                     <p><strong>🏢 Company:</strong> {job_data.get('company', 'Not specified')}</p>
                                     <p><strong>📊 Experience:</strong> {job_data.get('experience', 'Not specified')}</p>
@@ -171,7 +172,8 @@ def main():
                         with job_col2:
                             st.markdown(
                                 f"""
-                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem;'>
+                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem; 
+                                            color: #111827;'>
                                     <p><strong>🛠️ Required Skills:</strong></p>
                                     <p>{job_data.get('skills', 'Not specified')}</p>
                                     <p><strong>📝 Description:</strong></p>
@@ -190,8 +192,10 @@ def main():
                             for i, link in enumerate(relevant_links):
                                 st.markdown(
                                     f"""
-                                    <div style='background-color: #F0F9FF; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem;'>
-                                        <p style='margin: 0;'><strong>Item {i+1}:</strong> <a href="{link['links']}" target="_blank">{link['links']}</a></p>
+                                    <div style='background-color: #F0F9FF; padding: 1rem; border-radius: 0.5rem; 
+                                                margin-bottom: 0.5rem; color: #111827;'>
+                                        <p style='margin: 0;'><strong>Item {i+1}:</strong> 
+                                        <a href="{link['links']}" target="_blank">{link['links']}</a></p>
                                         <p style='margin: 0; color: #6B7280;'>{link['techstack']}</p>
                                     </div>
                                     """,
