@@ -51,10 +51,13 @@ def main():
         initial_sidebar_state="collapsed"
     )
     
-    # Custom CSS for professional styling
+    # Custom CSS with new theme colors
     st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@700&family=Roboto:wght@400&display=swap" rel="stylesheet">
     <style>
+    body {
+        background-color: #0A1828; /* Dark Classic Blue */
+    }
     .bebas-neue-regular {
         font-family: "Bebas Neue", sans-serif;
         font-weight: 800;
@@ -62,7 +65,7 @@ def main():
     }
     .main-header {
         font-size: 5.5rem;
-        color: #1E3A8A;
+        color: #BFA181; /* Gold */
         text-align: center;
         margin-bottom: 0.3rem;
         font-family: "Bebas Neue", sans-serif;
@@ -70,7 +73,7 @@ def main():
     }
     .sub-header {
         font-size: 1.2rem;
-        color: #374151;
+        color: #178582; /* Turquoise */
         text-align: center;
         margin-top: 0rem;
         margin-bottom: 2rem;
@@ -79,26 +82,30 @@ def main():
         letter-spacing: 1px;
     }
     .user-section {
-        background-color: #F3F4F6;
+        background-color: #178582; /* Turquoise */
         padding: 1.5rem;
         border-radius: 0.5rem;
         margin-bottom: 2rem;
+        color: #FFFFFF;
     }
     .generated-email {
-        background-color: #F9FAFB;
+        background-color: #0A1828; /* Dark Classic Blue */
         padding: 1.5rem;
         border-radius: 0.5rem;
-        border-left: 4px solid #3B82F6;
+        border-left: 4px solid #BFA181; /* Gold */
+        color: #FFFFFF;
     }
     .stButton button {
-        background-color: #1B5A57;
-        color: white;
+        background-color: #BFA181; /* Gold */
+        color: #0A1828; /* Dark Blue text */
         border-radius: 0.5rem;
         padding: 0.5rem 1rem;
         border: none;
+        font-weight: bold;
     }
     .stButton button:hover {
-        background-color: #94B3F5;
+        background-color: #178582; /* Turquoise hover */
+        color: #FFFFFF;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -138,7 +145,7 @@ def main():
     # Main content
     tab1, tab2 = st.tabs(["🌐 Extract from URL", "📝 Manual Input"])
     
-    # ---------- UPDATED SECTION ----------
+    # ---------- URL Tab ----------
     with tab1:
         st.header("Extract Job Information from URL")
         job_url = st.text_input("Enter Job URL:", placeholder="https://company.com/careers/job-title")
@@ -153,15 +160,14 @@ def main():
                         st.markdown("---")
                         st.markdown("### 📋 Extracted Job Details")
                         
-                        # Card-like layout
                         job_col1, job_col2 = st.columns([1, 2])
                         
                         with job_col1:
                             st.markdown(
                                 f"""
-                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem; 
-                                            border-left: 4px solid #3B82F6; color: #111827;'>
-                                    <h3 style='color: #1E40AF; margin-top: 0;'>{job_data.get('role', 'Not specified')}</h3>
+                                <div style='background-color: #178582; padding: 1.5rem; border-radius: 0.5rem; 
+                                            border-left: 4px solid #BFA181; color: #FFFFFF;'>
+                                    <h3 style='color: #BFA181; margin-top: 0;'>{job_data.get('role', 'Not specified')}</h3>
                                     <p><strong>🏢 Company:</strong> {job_data.get('company', 'Not specified')}</p>
                                     <p><strong>📊 Experience:</strong> {job_data.get('experience', 'Not specified')}</p>
                                 </div>
@@ -172,8 +178,8 @@ def main():
                         with job_col2:
                             st.markdown(
                                 f"""
-                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem; 
-                                            color: #111827;'>
+                                <div style='background-color: #178582; padding: 1.5rem; border-radius: 0.5rem; 
+                                            color: #FFFFFF;'>
                                     <p><strong>🛠️ Required Skills:</strong></p>
                                     <p>{job_data.get('skills', 'Not specified')}</p>
                                     <p><strong>📝 Description:</strong></p>
@@ -192,11 +198,11 @@ def main():
                             for i, link in enumerate(relevant_links):
                                 st.markdown(
                                     f"""
-                                    <div style='background-color: #F0F9FF; padding: 1rem; border-radius: 0.5rem; 
-                                                margin-bottom: 0.5rem; color: #111827;'>
+                                    <div style='background-color: #0A1828; padding: 1rem; border-radius: 0.5rem; 
+                                                margin-bottom: 0.5rem; color: #FFFFFF; border-left: 3px solid #BFA181;'>
                                         <p style='margin: 0;'><strong>Item {i+1}:</strong> 
-                                        <a href="{link['links']}" target="_blank">{link['links']}</a></p>
-                                        <p style='margin: 0; color: #6B7280;'>{link['techstack']}</p>
+                                        <a href="{link['links']}" target="_blank" style="color:#BFA181;">{link['links']}</a></p>
+                                        <p style='margin: 0; color: #E5E7EB;'>{link['techstack']}</p>
                                     </div>
                                     """,
                                     unsafe_allow_html=True
@@ -228,8 +234,8 @@ def main():
                         st.error("Could not extract job information. Please try a different URL or use manual input.")
             else:
                 st.warning("Please enter a job URL")
-    # ---------- END UPDATED SECTION ----------
     
+    # ---------- Manual Input Tab ----------
     with tab2:
         st.header("Enter Job Details Manually")
         
@@ -257,7 +263,6 @@ def main():
                 
                 relevant_links = portfolio.query_links(skills_input)
                 
-                # Generate email
                 email = email_gen.generate_email(job_data, relevant_links, user_info)
                 
                 st.markdown("### ✨ Generated Cold Email")
@@ -265,7 +270,6 @@ def main():
                 st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_manual")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Actions
                 col1, col2 = st.columns(2)
                 with col1:
                     st.download_button(
@@ -285,7 +289,7 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown(
-        "<div style='text-align: center; color: #6B7280;'>"
+        f"<div style='text-align: center; color: #BFA181;'>"
         "COLDFLOW • Professional Cold Email Generator • "
         f"© {datetime.now().year}</div>",
         unsafe_allow_html=True
