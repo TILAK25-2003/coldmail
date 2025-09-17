@@ -49,25 +49,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS with new color theme
+# Custom CSS (keep all styles the same)
 st.markdown(
     """
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #0A1828;
-            color: #FFFFFF;
-        }
-        .main-header {
-            font-size: 4rem;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 0.3rem;
-            background: linear-gradient(90deg, #178582, #BFA181, #0A1828);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
         .sub-header {
+            font-family: 'Brush Script MT', cursive;
             font-size: 1.2rem;
             color: #BFA181;
             text-align: center;
@@ -99,8 +86,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Header
-st.markdown('<h1 class="main-header">📧 COLDFLOW</h1>', unsafe_allow_html=True)
+# Header (use uploaded PNG instead of text)
+st.image("text-1758113213396.png", use_container_width=False)
+
+# Sub-header
 st.markdown('<p class="sub-header">Smooth cold email generation for job applications</p>', unsafe_allow_html=True)
 
 # Initialize components
