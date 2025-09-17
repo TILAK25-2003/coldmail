@@ -60,7 +60,7 @@ st.markdown(
             color: #FFFFFF;
         }
         .main-header {
-            font-family: 'Quartzo', sans-serif;
+            font-family: 'Anton', sans-serif;
             font-size: 5.5rem;
             font-weight: bold;
             text-align: center;
