@@ -49,71 +49,123 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS with new color theme
+# Custom CSS with enhanced typography
 st.markdown(
     """
+    <link href="https://fonts.googleapis.com/css2?family=Quartzo&family=Brush+Script+MT&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Montserrat', sans-serif;
             background-color: #0A1828;
             color: #FFFFFF;
         }
         .main-header {
-            font-size: 4rem;
+            font-family: 'Quartzo', sans-serif;
+            font-size: 5.5rem;
             font-weight: bold;
             text-align: center;
             margin-bottom: 0.3rem;
-            background: linear-gradient(90deg, #178582, #BFA181, #0A1828);
+            background: linear-gradient(90deg, #178582, #BFA181);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 0px 4px 15px rgba(23, 133, 130, 0.3);
+            letter-spacing: 1px;
         }
         .sub-header {
-            font-size: 1.2rem;
+            font-family: 'Brush Script MT', cursive;
+            font-size: 2.2rem;
             color: #BFA181;
             text-align: center;
-            margin-top: 0rem;
-            margin-bottom: 2rem;
+            margin-top: -1rem;
+            margin-bottom: 2.5rem;
+            text-shadow: 0px 2px 8px rgba(191, 161, 129, 0.4);
+        }
+        .section-header {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: #178582;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #BFA181;
+            padding-bottom: 0.5rem;
         }
         .user-section, .generated-email {
-            background-color: #0A1828;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
+            background-color: rgba(10, 24, 40, 0.9);
+            padding: 1.8rem;
+            border-radius: 0.8rem;
             border-left: 4px solid #178582;
             color: #FFFFFF;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 1.5rem;
+        }
+        .generated-email {
+            border-left: 4px solid #BFA181;
         }
         .stButton>button {
-            background-color: #178582;
+            background: linear-gradient(135deg, #178582, #0A1828);
             color: #FFFFFF;
-            font-weight: bold;
-            border-radius: 10px;
-            padding: 10px 20px;
+            font-weight: 600;
+            border-radius: 12px;
+            padding: 12px 28px;
             border: none;
             cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+            box-shadow: 0 4px 8px rgba(23, 133, 130, 0.3);
         }
         .stButton>button:hover {
-            background-color: #BFA181;
+            background: linear-gradient(135deg, #0A1828, #178582);
+            box-shadow: 0 6px 12px rgba(23, 133, 130, 0.4);
+            transform: translateY(-2px);
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 50px;
+            white-space: pre-wrap;
+            background-color: #0A1828;
+            border-radius: 8px 8px 0px 0px;
+            gap: 8px;
+            padding: 12px 20px;
+            border: 1px solid #178582;
+            color: #BFA181;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #178582;
             color: #0A1828;
         }
-        .copy-btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            background: #6C63FF;
-            color: #fff;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
+        .footer {
+            text-align: center;
+            color: #BFA181;
+            margin-top: 3rem;
+            padding: 1rem;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
         }
-        .copy-btn:hover {
-            background: #5548d6;
+        .success-message {
+            background-color: rgba(23, 133, 130, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #178582;
+            margin: 1rem 0;
+        }
+        .portfolio-item {
+            background-color: rgba(191, 161, 129, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.8rem;
+            border: 1px solid #BFA181;
         }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Header
+# Header with enhanced typography
 st.markdown('<h1 class="main-header">📧 COLDFLOW</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Smooth cold email generation for job applications</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Crafting connections through compelling communication</p>', unsafe_allow_html=True)
 
 # Initialize components
 portfolio = Portfolio()
@@ -146,8 +198,8 @@ tab1, tab2 = st.tabs(["🌐 Extract from URL", "📝 Manual Input"])
 
 # ---------- URL Tab ----------
 with tab1:
-    st.header("Extract Job Information from URL")
-    job_url = st.text_input("Enter Job URL:", placeholder="https://company.com/careers/job-title")
+    st.markdown('<h3 class="section-header">Extract Job Information from URL</h3>', unsafe_allow_html=True)
+    job_url = st.text_input("Enter Job URL:", placeholder="https://company.com/careers/job-title", key="url_input")
 
     if st.button("Extract & Generate Email", key="url_btn"):
         if job_url:
@@ -155,7 +207,7 @@ with tab1:
                 job_data = scraper.scrape_job_info(job_url)
 
                 if job_data:
-                    st.success("✅ Job information extracted successfully!")
+                    st.markdown('<div class="success-message">✅ Job information extracted successfully!</div>', unsafe_allow_html=True)
                     st.markdown("---")
                     st.markdown("### 📋 Extracted Job Details")
 
@@ -193,9 +245,9 @@ with tab1:
                         for i, link in enumerate(relevant_links):
                             st.markdown(
                                 f"""
-                                <div class="user-section" style="margin-bottom:0.5rem;">
+                                <div class="portfolio-item">
                                     <p style='margin: 0;'><strong>Item {i+1}:</strong> 
-                                    <a href="{link['links']}" target="_blank" style="color:#178582;">{link['links']}</a></p>
+                                    <a href="{link['links']}" target="_blank" style="color:#178582; text-decoration: none; font-weight: 600;">{link['links']}</a></p>
                                     <p style='margin: 0; color: #E5E7EB;'>{link['techstack']}</p>
                                 </div>
                                 """,
@@ -211,14 +263,13 @@ with tab1:
                         st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_url")
                         st.markdown('</div>', unsafe_allow_html=True)
 
-                        # ✅ Only Copy to Clipboard button
-                        st.markdown(
-                            f"""
-                            <button class="copy-btn" onclick="navigator.clipboard.writeText(`{email}`)">
-                                📋 Copy to Clipboard
-                            </button>
-                            """,
-                            unsafe_allow_html=True
+                        # Download button only
+                        st.download_button(
+                            label="📥 Download Email",
+                            data=email,
+                            file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                            mime="text/plain",
+                            use_container_width=True
                         )
                 else:
                     st.error("Could not extract job information. Please try again.")
@@ -227,7 +278,7 @@ with tab1:
 
 # ---------- Manual Input Tab ----------
 with tab2:
-    st.header("Enter Job Details Manually")
+    st.markdown('<h3 class="section-header">Enter Job Details Manually</h3>', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         role = st.text_input("Job Role*", key="manual_role")
@@ -255,14 +306,14 @@ with tab2:
             st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_manual")
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # ✅ Only Copy to Clipboard button
-            st.markdown(
-                f"""
-                <button class="copy-btn" onclick="navigator.clipboard.writeText(`{email}`)">
-                    📋 Copy to Clipboard
-                </button>
-                """,
-                unsafe_allow_html=True
+            # Download button only
+            st.download_button(
+                label="📥 Download Email",
+                data=email,
+                file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key="manual_download",
+                use_container_width=True
             )
         else:
             st.warning("Please fill at least Job Role and Required Skills fields")
@@ -270,7 +321,7 @@ with tab2:
 # Footer
 st.markdown("---")
 st.markdown(
-    f"<div style='text-align: center; color: #FFFFFF;'>"
+    f"<div class='footer'>"
     "COLDFLOW • Professional Cold Email Generator • "
     f"© {datetime.now().year}</div>",
     unsafe_allow_html=True
