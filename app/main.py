@@ -60,10 +60,12 @@ st.markdown(
         }
         .main-header {
             font-size: 4rem;
-            color: #FFFFFF;
+            font-weight: bold;
             text-align: center;
             margin-bottom: 0.3rem;
-            font-weight: bold;
+            background: linear-gradient(90deg, #178582, #BFA181, #0A1828);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         .sub-header {
             font-size: 1.2rem;
@@ -93,13 +95,16 @@ st.markdown(
             color: #0A1828;
         }
         .copy-btn {
-            padding: 8px 15px;
-            border-radius: 5px;
+            padding: 10px 20px;
+            border-radius: 8px;
             background: #6C63FF;
             color: #fff;
             border: none;
             font-weight: bold;
             cursor: pointer;
+        }
+        .copy-btn:hover {
+            background: #5548d6;
         }
     </style>
     """,
@@ -206,24 +211,15 @@ with tab1:
                         st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_url")
                         st.markdown('</div>', unsafe_allow_html=True)
 
-                        # Actions
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.download_button(
-                                label="Download Email",
-                                data=email,
-                                file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                                mime="text/plain"
-                            )
-                        with col2:
-                            st.markdown(
-                                f"""
-                                <button class="copy-btn" onclick="navigator.clipboard.writeText(`{email}`)">
-                                    📋 Copy to Clipboard
-                                </button>
-                                """,
-                                unsafe_allow_html=True
-                            )
+                        # ✅ Only Copy to Clipboard button
+                        st.markdown(
+                            f"""
+                            <button class="copy-btn" onclick="navigator.clipboard.writeText(`{email}`)">
+                                📋 Copy to Clipboard
+                            </button>
+                            """,
+                            unsafe_allow_html=True
+                        )
                 else:
                     st.error("Could not extract job information. Please try again.")
         else:
@@ -259,24 +255,15 @@ with tab2:
             st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_manual")
             st.markdown('</div>', unsafe_allow_html=True)
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.download_button(
-                    label="Download Email",
-                    data=email,
-                    file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    mime="text/plain",
-                    key="manual_download"
-                )
-            with col2:
-                st.markdown(
-                    f"""
-                    <button class="copy-btn" onclick="navigator.clipboard.writeText(`{email}`)">
-                        📋 Copy to Clipboard
-                    </button>
-                    """,
-                    unsafe_allow_html=True
-                )
+            # ✅ Only Copy to Clipboard button
+            st.markdown(
+                f"""
+                <button class="copy-btn" onclick="navigator.clipboard.writeText(`{email}`)">
+                    📋 Copy to Clipboard
+                </button>
+                """,
+                unsafe_allow_html=True
+            )
         else:
             st.warning("Please fill at least Job Role and Required Skills fields")
 
