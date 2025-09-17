@@ -275,15 +275,17 @@ with tab1:
                                 unsafe_allow_html=True
                             )
 
-                    # Display the generated email properly inside the green container
-st.markdown("### ✨ Generated Cold Email")
-st.markdown('<div class="generated-email-container">', unsafe_allow_html=True)
+                    # Generate email
+                    with st.spinner("Crafting your perfect cold email..."):
+                        email = email_gen.generate_email(job_data, relevant_links, user_info)
 
-# Replace newlines with HTML line breaks for proper formatting
-formatted_email = email.replace('\n', '<br>')
-st.markdown(f'<div class="email-content">{formatted_email}</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
+                        st.markdown("### ✨ Generated Cold Email")
+                        st.markdown('<div class="generated-email-container">', unsafe_allow_html=True)
+                        
+                        # Display email content properly inside the container
+                        st.markdown(f'<div class="email-content">{email}</div>', unsafe_allow_html=True)
+                        
+                        st.markdown('</div>', unsafe_allow_html=True)
 
                         # Download button only
                         st.download_button(
