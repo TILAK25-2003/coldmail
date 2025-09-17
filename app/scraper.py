@@ -1,209 +1,100 @@
 # scraper.py
-import re
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse, urljoin
-import time
+import re
 
-class AdvancedScraper:
-    def __init__(self):
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-        }
-        self.session = requests.Session()
-        self.session.headers.update(self.headers)
-        
-        # Common job platforms patterns
-        self.job_platforms = {
-            'linkedin': r'linkedin\.com/jobs',
-            'indeed': r'indeed\.com',
-            'naukri': r'naukri\.com',
-            'monster': r'monster\.com',
-            'glassdoor': r'glassdoor\.com',
-            'simplyhired': r'simplyhired\.com',
-            'careerbuilder': r'careerbuilder\.com'
-        }
-    
-    def _extract_company_from_url(self, url):
-        """Extract company name from URL with better accuracy"""
-        try:
-            parsed_url = urlparse(url)
-            domain = parsed_url.netloc
-            
-            # Remove www and common subdomains
-            domain = re.sub(r'^www\.|^careers\.|^jobs\.|^recruitment\.', '', domain)
-            
-            # Extract company name from domain
-            company_name = domain.split('.')[0]
-            
-            # Clean and format company name
-            company_name = re.sub(r'[^a-zA-Z0-9]', ' ', company_name)
-            company_name = company_name.title()
-            company_name = re.sub(r'\s+', ' ', company_name).strip()
-            
-            return company_name if company_name else "The Company"
-        except:
-            return "The Company"
-    
-    def _clean_text(self, text):
-        """Clean and normalize text"""
+class SimpleScraper:
+    """
+    Conservative scraper: tries to fetch the URL, extracts title, meta description,
+    and heuristically extracts role, experience, skills and company name.
+    If fetching fails (no internet / blocked), returns a helpful fallback dict.
+    """
+
+    USER_AGENT = "Mozilla/5.0 (compatible; COLDFLOW-bot/1.0)"
+
+    def _clean_text(self, text: str) -> str:
         if not text:
             return ""
-        # Remove extra whitespace, newlines, and special characters
-        text = re.sub(r'\s+', ' ', text)
-        text = re.sub(r'\n+', ' ', text)
-        text = re.sub(r'[^\w\s.,!?;:()\-&+/]', '', text)
-        return text.strip()
-    
-    def _extract_from_common_selectors(self, soup, selectors):
-        """Extract text using multiple CSS selectors"""
-        for selector in selectors:
-            elements = soup.select(selector)
-            for element in elements:
-                text = self._clean_text(element.get_text())
-                if text and len(text) > 3:
-                    return text
-        return None
-    
-    def _extract_role(self, soup, url):
-        """Enhanced job role extraction"""
-        # Priority selectors for job titles
-        role_selectors = [
-            'h1[class*="title"][class*="job"]',
-            'h1[class*="title"][class*="position"]',
-            '[data-cy="job-title"]',
-            '.job-title',
-            '.position-title',
-            '.jobTitle',
-            '.job_header',
-            '.topcard__title',
-            '.jobsearch-JobInfoHeader-title',
-            'h1.job-title',
-            'title'
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+
+    def _extract_skills_from_text(self, text: str) -> str:
+        # Simple heuristic: look for "skills", "requirements", "must have" sections
+        # and return the first few comma-separated tokens found.
+        text_lower = text.lower()
+        patterns = [
+            r"(skills[:\s]*)([^\n\r]{20,400})",
+            r"(requirements[:\s]*)([^\n\r]{20,400})",
+            r"(responsibilities[:\s]*)([^\n\r]{20,400})"
         ]
-        
-        role = self._extract_from_common_selectors(soup, role_selectors)
-        
-        if role:
-            # Clean role title
-            role = re.sub(r'(-|–|—|at|@|\\|/).*$', '', role, flags=re.IGNORECASE)
-            role = self._clean_text(role)
-            return role if role else "Professional Role"
-        
-        # Fallback to page title analysis
-        title_tag = soup.find('title')
-        if title_tag:
-            title_text = self._clean_text(title_tag.get_text())
-            # Remove platform names and company names
-            for platform in ['LinkedIn', 'Indeed', 'Naukri', 'Monster', 'Glassdoor', ' - Jobs', ' | Careers']:
-                title_text = title_text.replace(platform, '')
-            return title_text if title_text else "Professional Role"
-        
-        return "Professional Role"
-    
-    def _extract_experience(self, soup):
-        """Enhanced experience requirement extraction"""
-        experience_patterns = [
-            r'experience.*?(\d+[\+\-]?\d*\s*[-–]?\s*\d*\s*(?:years?|yrs?|y))',
-            r'(\d+[\+\-]?\d*\s*[-–]?\s*\d*\s*(?:years?|yrs?|y)\s*experience)',
-            r'minimum.*?(\d+[\+\-]?\d*\s*(?:years?|yrs?|y))',
-            r'(\d+\+?\s*(?:years?|yrs?|y))',
-            r'experience.*?(\d+\+?)',
-            r'(\d+\s*[-–]\s*\d+\s*years?)'
-        ]
-        
-        text = soup.get_text().lower()
-        
-        for pattern in experience_patterns:
-            matches = re.finditer(pattern, text, re.IGNORECASE | re.DOTALL)
-            for match in matches:
-                exp_text = self._clean_text(match.group(1))
-                if exp_text and len(exp_text) < 30:
-                    return exp_text.title()
-        
-        # Check common experience phrases
-        experience_phrases = [
-            'fresher', 'entry level', 'mid level', 'senior level',
-            'experienced professional', 'leadership experience'
-        ]
-        
-        for phrase in experience_phrases:
-            if phrase in text:
-                return phrase.title()
-        
-        return "Experience varies"
-    
-    def _extract_skills(self, soup):
-        """Enhanced skills extraction for all job types"""
-        # Comprehensive skill categories
-        skill_categories = {
-            'technical': [
-                'python', 'javascript', 'java', 'c++', 'c#', 'ruby', 'php', 'html', 'css',
-                'react', 'angular', 'vue', 'node', 'django', 'flask', 'spring', 'sql', 'nosql',
-                'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'devops',
-                'machine learning', 'ai', 'data science', 'big data', 'tableau', 'power bi'
-            ],
-            'non_technical': [
-                'communication', 'leadership', 'management', 'teamwork', 'problem solving',
-                'critical thinking', 'time management', 'organization', 'adaptability',
-                'creativity', 'negotiation', 'presentation', 'public speaking', 'writing',
-                'research', 'analysis', 'strategic planning', 'project management'
-            ],
-            'business': [
-                'sales', 'marketing', 'digital marketing', 'seo', 'sem', 'social media',
-                'business development', 'account management', 'customer service',
-                'finance', 'accounting', 'budgeting', 'forecasting', 'risk management',
-                'hr', 'recruitment', 'training', 'talent acquisition'
-            ],
-            'creative': [
-                'design', 'photoshop', 'illustrator', 'figma', 'sketch', 'ux', 'ui',
-                'video editing', 'premiere pro', 'final cut', 'after effects',
-                'content creation', 'copywriting', 'branding', 'graphic design'
-            ]
-        }
-        
-        text = soup.get_text().lower()
-        found_skills = []
-        
-        # Look for skills sections first
-        skill_section_selectors = [
-            '.skills', '.requirements', '.qualifications', '.responsibilities',
-            '[class*="skill"]', '[class*="requirement"]', '[class*="qualification"]',
-            '.job-requirements', '.essential-skills', '.desired-skills'
-        ]
-        
-        skill_text = ""
-        for selector in skill_section_selectors:
-            elements = soup.select(selector)
-            for element in elements:
-                skill_text += " " + element.get_text().lower()
-        
-        if not skill_text:
-            skill_text = text
-        
-        # Extract skills from all categories
-        for category, skills in skill_categories.items():
-            for skill in skills:
-                if skill in skill_text and skill not in found_skills:
-                    found_skills.append(skill)
-        
-        return ', '.join(found_skills[:10]) if found_skills else "Relevant skills and experience"
-    
-    def _extract_description(self, soup):
-        """Enhanced job description extraction"""
-        description_selectors = [
-            '.job-description',
-            '.job-description-content',
-            '.description',
-            '.job-details',
-            '.job-requirements',
-            '.role-responsibilities',
-            '[class*="description"]',
-            '[class*="detail"]',
-            '.jobsum
+        for p in patterns:
+            m = re.search(p, text_lower, re.IGNORECASE)
+            if m:
+                fragment = m.group(2)
+                # take up to first 200 chars and try to extract comma separated skills
+                fragment = fragment[:300]
+                # remove html-like leftovers
+                fragment = re.sub(r'<[^>]+>', '', fragment)
+                # try to pull tokens
+                tokens = re.split(r'[,\n••\-\•]', fragment)
+                tokens = [t.strip() for t in tokens if len(t.strip()) > 1]
+                if tokens:
+                    return ", ".join(tokens[:10])
+        # fallback: try to find common language names
+        languages = ["python", "javascript", "java", "c++", "c#", "sql", "react", "node", "aws", "docker"]
+        found = [w for w in languages if w in text_lower]
+        return ", ".join(found) if found else ""
+
+    def scrape_job_info(self, url: str) -> dict:
+        if not url:
+            return {"error": "No URL provided."}
+        headers = {"User-Agent": self.USER_AGENT}
+        try:
+            resp = requests.get(url, headers=headers, timeout=8)
+            if resp.status_code != 200:
+                return {"error": f"HTTP {resp.status_code} when requesting the URL."}
+            html = resp.text
+            soup = BeautifulSoup(html, "html.parser")
+
+            # Title and meta description
+            title = soup.title.string.strip() if soup.title and soup.title.string else ""
+            meta_desc = ""
+            md = soup.find("meta", attrs={"name": "description"}) or soup.find("meta", attrs={"property": "og:description"})
+            if md and md.get("content"):
+                meta_desc = md.get("content").strip()
+
+            # Join visible text for heuristics
+            texts = soup.stripped_strings
+            page_text = " ".join(list(texts))[:50000]  # limit length
+
+            # heuristics
+            role = title or re.search(r'([\w\s\-\|:]{3,80}?) at ', page_text) and (title) or ""
+            # try to find company
+            company = ""
+            # look for "at <Company>" patterns
+            m_co = re.search(r'at\s+([A-Z][A-Za-z0-9&\-\s]{2,50})', page_text)
+            if m_co:
+                company = m_co.group(1).strip()
+
+            experience = ""
+            m_exp = re.search(r'(\d+\+?\s*(?:years|yrs|year))', page_text, re.IGNORECASE)
+            if m_exp:
+                experience = m_exp.group(1)
+
+            skills = self._extract_skills_from_text(page_text)
+            description = meta_desc or page_text[:2000]
+
+            # make fallback minimal if nothing found
+            job_data = {
+                "role": role or "Job Position",
+                "experience": experience or "Not specified",
+                "skills": skills or "Not specified",
+                "description": self._clean_text(description),
+                "company": company or ""
+            }
+            return job_data
+
+        except requests.exceptions.RequestException as e:
+            return {"error": f"Request failed: {e}. You may be offline or the site blocked requests."}
+        except Exception as e:
+            return {"error": f"Unexpected scraping error: {e}"}
