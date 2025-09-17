@@ -55,7 +55,7 @@ st.markdown(
     <link href="https://fonts.googleapis.com/css2?family=Quartzo&family=Brush+Script+MT&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Montserrat', sans-serif;
+            font-family: 'Anton', sans-serif;
             background-color: #0A1828;
             color: #FFFFFF;
         }
