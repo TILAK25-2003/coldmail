@@ -52,24 +52,24 @@ st.set_page_config(
 # Custom CSS with enhanced typography
 st.markdown(
     """
-    <link href="https://fonts.googleapis.com/css2?family=Quartzo&family=Brush+Script+MT&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Brush+Script+MT&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Anton', sans-serif;
+            font-family: 'Montserrat', sans-serif;
             background-color: #0A1828;
             color: #FFFFFF;
         }
         .main-header {
             font-family: 'Anton', sans-serif;
             font-size: 5.5rem;
-            font-weight: bold;
+            font-weight: 400;
             text-align: center;
             margin-bottom: 0.3rem;
             background: linear-gradient(90deg, #178582, #BFA181);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-shadow: 0px 4px 15px rgba(23, 133, 130, 0.3);
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
         .sub-header {
             font-family: 'Brush Script MT', cursive;
@@ -88,7 +88,7 @@ st.markdown(
             border-bottom: 2px solid #BFA181;
             padding-bottom: 0.5rem;
         }
-        .user-section, .generated-email {
+        .user-section, .generated-email-container {
             background-color: rgba(10, 24, 40, 0.9);
             padding: 1.8rem;
             border-radius: 0.8rem;
@@ -97,8 +97,21 @@ st.markdown(
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             margin-bottom: 1.5rem;
         }
-        .generated-email {
+        .generated-email-container {
             border-left: 4px solid #BFA181;
+        }
+        .email-content {
+            background-color: rgba(23, 133, 130, 0.1);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #178582;
+            color: #FFFFFF;
+            font-family: 'Montserrat', monospace;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            margin: 1rem 0;
+            max-height: 400px;
+            overflow-y: auto;
         }
         .stButton>button {
             background: linear-gradient(135deg, #178582, #0A1828);
@@ -157,6 +170,14 @@ st.markdown(
             border-radius: 8px;
             margin-bottom: 0.8rem;
             border: 1px solid #BFA181;
+        }
+        .email-textarea {
+            background-color: rgba(23, 133, 130, 0.1) !important;
+            color: #FFFFFF !important;
+            border: 1px solid #178582 !important;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Montserrat', monospace !important;
         }
     </style>
     """,
@@ -259,8 +280,8 @@ with tab1:
                         email = email_gen.generate_email(job_data, relevant_links, user_info)
 
                         st.markdown("### ✨ Generated Cold Email")
-                        st.markdown('<div class="generated-email">', unsafe_allow_html=True)
-                        st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_url")
+                        st.markdown('<div class="generated-email-container">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="email-content">{email}</div>', unsafe_allow_html=True)
                         st.markdown('</div>', unsafe_allow_html=True)
 
                         # Download button only
@@ -302,8 +323,8 @@ with tab2:
             email = email_gen.generate_email(job_data, relevant_links, user_info)
 
             st.markdown("### ✨ Generated Cold Email")
-            st.markdown('<div class="generated-email">', unsafe_allow_html=True)
-            st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_manual")
+            st.markdown('<div class="generated-email-container">', unsafe_allow_html=True)
+            st.markdown(f'<div class="email-content">{email}</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
             # Download button only
