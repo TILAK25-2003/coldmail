@@ -64,7 +64,7 @@ def main():
         font-size: 5.5rem;
         color: #1E3A8A;
         text-align: center;
-        margin-bottom: 0.3rem; /* Reduced from 1rem */
+        margin-bottom: 0.3rem;
         font-family: "Bebas Neue", sans-serif;
         letter-spacing: 2px;
     }
@@ -72,7 +72,7 @@ def main():
         font-size: 1.2rem;
         color: #374151;
         text-align: center;
-        margin-top: 0rem;      /* Add this line to remove any top margin */
+        margin-top: 0rem;
         margin-bottom: 2rem;
         font-family: "Bebas Neue", sans-serif;
         font-style: italic;
@@ -138,33 +138,65 @@ def main():
     # Main content
     tab1, tab2 = st.tabs(["🌐 Extract from URL", "📝 Manual Input"])
     
+    # ---------- UPDATED SECTION ----------
     with tab1:
         st.header("Extract Job Information from URL")
-        job_url = st.text_input("Enter Job URL:", placeholder="https://company.com/careers/job-title", key="url_input")
+        job_url = st.text_input("Enter Job URL:", placeholder="https://company.com/careers/job-title")
         
         if st.button("Extract & Generate Email", key="url_btn"):
             if job_url:
                 with st.spinner("Extracting job information..."):
                     job_data = scraper.scrape_job_info(job_url)
                     
-                    # Check for errors
-                    if 'error' in job_data:
-                        st.error(f"Error: {job_data['error']}")
-                        st.info("Please try a different URL or use manual input below.")
-                    else:
-                        st.success("Job information extracted successfully!")
-                        with st.expander("View Extracted Job Details"):
-                            st.json(job_data)
+                    if job_data:
+                        st.success("✅ Job information extracted successfully!")
+                        st.markdown("---")
+                        st.markdown("### 📋 Extracted Job Details")
                         
-                        # Get relevant portfolio links
+                        # Card-like layout
+                        job_col1, job_col2 = st.columns([1, 2])
+                        
+                        with job_col1:
+                            st.markdown(
+                                f"""
+                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid #3B82F6;'>
+                                    <h3 style='color: #1E40AF; margin-top: 0;'>{job_data.get('role', 'Not specified')}</h3>
+                                    <p><strong>🏢 Company:</strong> {job_data.get('company', 'Not specified')}</p>
+                                    <p><strong>📊 Experience:</strong> {job_data.get('experience', 'Not specified')}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                        
+                        with job_col2:
+                            st.markdown(
+                                f"""
+                                <div style='background-color: #F0F9FF; padding: 1.5rem; border-radius: 0.5rem;'>
+                                    <p><strong>🛠️ Required Skills:</strong></p>
+                                    <p>{job_data.get('skills', 'Not specified')}</p>
+                                    <p><strong>📝 Description:</strong></p>
+                                    <p>{job_data.get('description', 'Not specified')}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                        
+                        # Portfolio links
                         skills = job_data.get('skills', '')
                         relevant_links = portfolio.query_links(skills)
                         
-                        # Display relevant links
                         if relevant_links:
-                            st.subheader("🔗 Relevant Portfolio Links")
-                            for link in relevant_links:
-                                st.write(f"- [{link['techstack']}]({link['links']}) (Similarity: {link.get('similarity', 0):.2f})")
+                            st.markdown("### 🔗 Relevant Portfolio Items")
+                            for i, link in enumerate(relevant_links):
+                                st.markdown(
+                                    f"""
+                                    <div style='background-color: #F0F9FF; padding: 1rem; border-radius: 0.5rem; margin-bottom: 0.5rem;'>
+                                        <p style='margin: 0;'><strong>Item {i+1}:</strong> <a href="{link['links']}" target="_blank">{link['links']}</a></p>
+                                        <p style='margin: 0; color: #6B7280;'>{link['techstack']}</p>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
                         
                         # Generate email
                         with st.spinner("Crafting your perfect cold email..."):
@@ -172,25 +204,27 @@ def main():
                             
                             st.markdown("### ✨ Generated Cold Email")
                             st.markdown('<div class="generated-email">', unsafe_allow_html=True)
-                            st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_url")
+                            st.text_area("Email Content", email, height=300, label_visibility="collapsed")
                             st.markdown('</div>', unsafe_allow_html=True)
                             
-                            # Email actions
+                            # Actions
                             col1, col2 = st.columns(2)
                             with col1:
                                 st.download_button(
                                     label="Download Email",
                                     data=email,
                                     file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                                    mime="text/plain",
-                                    key="download_url"
+                                    mime="text/plain"
                                 )
                             with col2:
-                                if st.button("Copy to Clipboard", key="copy_url"):
+                                if st.button("Copy to Clipboard"):
                                     st.code(email, language=None)
                                     st.success("Email copied to clipboard!")
+                    else:
+                        st.error("Could not extract job information. Please try a different URL or use manual input.")
             else:
                 st.warning("Please enter a job URL")
+    # ---------- END UPDATED SECTION ----------
     
     with tab2:
         st.header("Enter Job Details Manually")
@@ -227,7 +261,7 @@ def main():
                 st.text_area("Email Content", email, height=300, label_visibility="collapsed", key="email_output_manual")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Email actions
+                # Actions
                 col1, col2 = st.columns(2)
                 with col1:
                     st.download_button(
