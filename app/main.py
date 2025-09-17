@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import sys
 from datetime import datetime
+import pyperclip  # Added for clipboard functionality
 
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -103,6 +104,15 @@ def main():
         border-left: 4px solid #BFA181;
         color: #FFFFFF;
     }
+    .copy-btn {
+        background-color: #178582 !important;
+        color: white !important;
+        margin-top: 10px;
+    }
+    .copy-btn:hover {
+        background-color: #0A1828 !important;
+        border: 1px solid #BFA181 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -166,6 +176,23 @@ def main():
                 email_text = email_gen.generate_email(job_data, links, user_info)
                 st.markdown("### ✨ Generated Email")
                 st.markdown(f"<div class='generated-email'><pre>{email_text}</pre></div>", unsafe_allow_html=True)
+                
+                # Add copy to clipboard functionality
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.download_button(
+                        label="Download Email",
+                        data=email_text,
+                        file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                        mime="text/plain"
+                    )
+                with col2:
+                    if st.button("📋 Copy to Clipboard", key="copy_url", use_container_width=True):
+                        try:
+                            pyperclip.copy(email_text)
+                            st.success("Email copied to clipboard!")
+                        except Exception as e:
+                            st.error(f"Could not copy to clipboard: {e}")
 
     with tab2:
         st.header("Enter Job Details Manually")
@@ -184,6 +211,24 @@ def main():
                 email_text = email_gen.generate_email(job_data, links, user_info)
                 st.markdown("### ✨ Generated Email")
                 st.markdown(f"<div class='generated-email'><pre>{email_text}</pre></div>", unsafe_allow_html=True)
+                
+                # Add copy to clipboard functionality
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.download_button(
+                        label="Download Email",
+                        data=email_text,
+                        file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                        mime="text/plain",
+                        key="manual_download"
+                    )
+                with col2:
+                    if st.button("📋 Copy to Clipboard", key="copy_manual", use_container_width=True):
+                        try:
+                            pyperclip.copy(email_text)
+                            st.success("Email copied to clipboard!")
+                        except Exception as e:
+                            st.error(f"Could not copy to clipboard: {e}")
             else:
                 st.warning("⚠️ Fill at least Role & Skills")
 
@@ -196,4 +241,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
