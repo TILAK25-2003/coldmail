@@ -164,7 +164,7 @@ st.markdown(
 )
 
 # Header with enhanced typography
-st.markdown('<h1 class="main-header">📧 COLDFLOW</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">COLDFLOW</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Crafting connections through compelling communication</p>', unsafe_allow_html=True)
 
 # Initialize components
