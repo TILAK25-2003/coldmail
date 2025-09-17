@@ -4,7 +4,6 @@ import pandas as pd
 import os
 import sys
 from datetime import datetime
-import pyperclip  # Added for clipboard functionality
 
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -39,7 +38,7 @@ def main():
         layout="wide"
     )
 
-    # Custom fonts + gradient CSS
+    # Custom fonts + gradient CSS with clipboard functionality
     st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@700&family=Roboto:wght@400&display=swap" rel="stylesheet">
     <style>
@@ -116,6 +115,19 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
+    # Add JavaScript for clipboard functionality
+    st.markdown("""
+    <script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert('Email copied to clipboard successfully!');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+        });
+    }
+    </script>
+    """, unsafe_allow_html=True)
+
     # Hero header
     st.markdown("""
     <div class="hero">
@@ -145,9 +157,13 @@ def main():
     # Tabs
     tab1, tab2 = st.tabs(["🌐 Extract from URL", "📝 Manual Input"])
 
+    # Store email text in session state
+    if 'email_text' not in st.session_state:
+        st.session_state.email_text = ""
+
     with tab1:
         st.header("Extract Job Information from URL")
-        job_url = st.text_input("Job URL", placeholder="https://company.com/job/software-dev")
+        job_url = st.text_input("Job URL", placeholder="https://company.com/job/software-dev", key="url_input")
         if st.button("Extract & Generate Email", key="url_btn"):
             if job_url:
                 job_data = scraper.scrape_job_info(job_url)
@@ -173,26 +189,27 @@ def main():
                         </div>
                         """, unsafe_allow_html=True)
 
-                email_text = email_gen.generate_email(job_data, links, user_info)
+                st.session_state.email_text = email_gen.generate_email(job_data, links, user_info)
                 st.markdown("### ✨ Generated Email")
-                st.markdown(f"<div class='generated-email'><pre>{email_text}</pre></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='generated-email'><pre>{st.session_state.email_text}</pre></div>", unsafe_allow_html=True)
                 
                 # Add copy to clipboard functionality
                 col1, col2 = st.columns(2)
                 with col1:
                     st.download_button(
                         label="Download Email",
-                        data=email_text,
+                        data=st.session_state.email_text,
                         file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                         mime="text/plain"
                     )
                 with col2:
-                    if st.button("📋 Copy to Clipboard", key="copy_url", use_container_width=True):
-                        try:
-                            pyperclip.copy(email_text)
-                            st.success("Email copied to clipboard!")
-                        except Exception as e:
-                            st.error(f"Could not copy to clipboard: {e}")
+                    # Use JavaScript to copy to clipboard
+                    st.markdown(f"""
+                    <button onclick="copyToClipboard(`{st.session_state.email_text.replace('`', '\\`').replace('${', '\\${')}`)" 
+                            style="background-color: #178582; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; width: 100%;">
+                        📋 Copy to Clipboard
+                    </button>
+                    """, unsafe_allow_html=True)
 
     with tab2:
         st.header("Enter Job Details Manually")
@@ -208,27 +225,28 @@ def main():
             if role and skills:
                 job_data = {"role": role, "experience": exp, "skills": skills, "description": desc, "company": company}
                 links = portfolio.query_links(skills)
-                email_text = email_gen.generate_email(job_data, links, user_info)
+                st.session_state.email_text = email_gen.generate_email(job_data, links, user_info)
                 st.markdown("### ✨ Generated Email")
-                st.markdown(f"<div class='generated-email'><pre>{email_text}</pre></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='generated-email'><pre>{st.session_state.email_text}</pre></div>", unsafe_allow_html=True)
                 
                 # Add copy to clipboard functionality
                 col1, col2 = st.columns(2)
                 with col1:
                     st.download_button(
                         label="Download Email",
-                        data=email_text,
+                        data=st.session_state.email_text,
                         file_name=f"cold_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                         mime="text/plain",
                         key="manual_download"
                     )
                 with col2:
-                    if st.button("📋 Copy to Clipboard", key="copy_manual", use_container_width=True):
-                        try:
-                            pyperclip.copy(email_text)
-                            st.success("Email copied to clipboard!")
-                        except Exception as e:
-                            st.error(f"Could not copy to clipboard: {e}")
+                    # Use JavaScript to copy to clipboard
+                    st.markdown(f"""
+                    <button onclick="copyToClipboard(`{st.session_state.email_text.replace('`', '\\`').replace('${', '\\${')}`)" 
+                            style="background-color: #178582; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; width: 100%;">
+                        📋 Copy to Clipboard
+                    </button>
+                    """, unsafe_allow_html=True)
             else:
                 st.warning("⚠️ Fill at least Role & Skills")
 
