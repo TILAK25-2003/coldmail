@@ -281,7 +281,10 @@ with tab1:
 
                         st.markdown("### ✨ Generated Cold Email")
                         st.markdown('<div class="generated-email-container">', unsafe_allow_html=True)
+                        
+                        # Display email content properly inside the container
                         st.markdown(f'<div class="email-content">{email}</div>', unsafe_allow_html=True)
+                        
                         st.markdown('</div>', unsafe_allow_html=True)
 
                         # Download button only
@@ -324,7 +327,10 @@ with tab2:
 
             st.markdown("### ✨ Generated Cold Email")
             st.markdown('<div class="generated-email-container">', unsafe_allow_html=True)
+            
+            # Display email content properly inside the container
             st.markdown(f'<div class="email-content">{email}</div>', unsafe_allow_html=True)
+            
             st.markdown('</div>', unsafe_allow_html=True)
 
             # Download button only
