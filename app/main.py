@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import sys
 from datetime import datetime
+import json
 
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -119,11 +120,24 @@ def main():
     st.markdown("""
     <script>
     function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(function() {
+        // Create a temporary textarea element
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            var successful = document.execCommand('copy');
+            var msg = successful ? 'successful' : 'unsuccessful';
             alert('Email copied to clipboard successfully!');
-        }, function(err) {
+        } catch (err) {
             console.error('Could not copy text: ', err);
-        });
+            alert('Failed to copy to clipboard. Please try again.');
+        }
+        
+        document.body.removeChild(textArea);
     }
     </script>
     """, unsafe_allow_html=True)
@@ -203,9 +217,10 @@ def main():
                         mime="text/plain"
                     )
                 with col2:
-                    # Use JavaScript to copy to clipboard
+                    # Use JavaScript to copy to clipboard - fixed escaping
+                    safe_text = st.session_state.email_text.replace("`", "\\`").replace("${", "\\${")
                     st.markdown(f"""
-                    <button onclick="copyToClipboard(`{st.session_state.email_text.replace('`', '\\`').replace('${', '\\${')}`)" 
+                    <button onclick="copyToClipboard(`{safe_text}`)" 
                             style="background-color: #178582; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; width: 100%;">
                         📋 Copy to Clipboard
                     </button>
@@ -215,16 +230,16 @@ def main():
         st.header("Enter Job Details Manually")
         col1, col2 = st.columns(2)
         with col1:
-            role = st.text_input("Job Role*", key="m_role")
-            exp = st.text_input("Experience", key="m_exp")
+            role_manual = st.text_input("Job Role*", key="m_role")
+            exp_manual = st.text_input("Experience", key="m_exp")
         with col2:
-            skills = st.text_input("Skills*", key="m_skills")
-            company = st.text_input("Company", key="m_company")
-        desc = st.text_area("Job Description", key="m_desc")
+            skills_manual = st.text_input("Skills*", key="m_skills")
+            company_manual = st.text_input("Company", key="m_company")
+        desc_manual = st.text_area("Job Description", key="m_desc")
         if st.button("Generate Email", key="manual_btn"):
-            if role and skills:
-                job_data = {"role": role, "experience": exp, "skills": skills, "description": desc, "company": company}
-                links = portfolio.query_links(skills)
+            if role_manual and skills_manual:
+                job_data = {"role": role_manual, "experience": exp_manual, "skills": skills_manual, "description": desc_manual, "company": company_manual}
+                links = portfolio.query_links(skills_manual)
                 st.session_state.email_text = email_gen.generate_email(job_data, links, user_info)
                 st.markdown("### ✨ Generated Email")
                 st.markdown(f"<div class='generated-email'><pre>{st.session_state.email_text}</pre></div>", unsafe_allow_html=True)
@@ -240,9 +255,10 @@ def main():
                         key="manual_download"
                     )
                 with col2:
-                    # Use JavaScript to copy to clipboard
+                    # Use JavaScript to copy to clipboard - fixed escaping
+                    safe_text = st.session_state.email_text.replace("`", "\\`").replace("${", "\\${")
                     st.markdown(f"""
-                    <button onclick="copyToClipboard(`{st.session_state.email_text.replace('`', '\\`').replace('${', '\\${')}`)" 
+                    <button onclick="copyToClipboard(`{safe_text}`)" 
                             style="background-color: #178582; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; width: 100%;">
                         📋 Copy to Clipboard
                     </button>
