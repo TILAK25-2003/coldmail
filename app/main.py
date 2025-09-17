@@ -30,6 +30,31 @@ except ImportError:
         def generate_email(self, job_data, portfolio_links, user_info):
             return f"Cold email for {job_data.get('role')} with skills {job_data.get('skills')}."
 
+def copy_button(text, key="copybtn"):
+    """Custom Copy-to-Clipboard button"""
+    button_id = f"copy-btn-{key}"
+    st.markdown(f"""
+    <button id="{button_id}" style="
+        background-color:#BFA181;
+        color:#0A1828;
+        border:none;
+        border-radius:6px;
+        padding:6px 12px;
+        font-weight:bold;
+        cursor:pointer;
+        margin-top:0.5rem;">
+        📋 Copy to Clipboard
+    </button>
+    <script>
+    const copyButton{key} = document.getElementById("{button_id}");
+    copyButton{key}.onclick = function() {{
+        navigator.clipboard.writeText(`{text}`);
+        copyButton{key}.innerText = "✅ Copied!";
+        setTimeout(() => {{ copyButton{key}.innerText = "📋 Copy to Clipboard"; }}, 2000);
+    }}
+    </script>
+    """, unsafe_allow_html=True)
+
 def main():
     # Page setup
     st.set_page_config(
@@ -59,7 +84,7 @@ def main():
         font-size: 5rem;
         font-family: "Bebas Neue", sans-serif;
         letter-spacing: 2px;
-        color: #BFA181; /* Gold */
+        color: #BFA181;
         margin-bottom: 0.5rem;
     }
     .hero p {
@@ -166,6 +191,7 @@ def main():
                 email_text = email_gen.generate_email(job_data, links, user_info)
                 st.markdown("### ✨ Generated Email")
                 st.markdown(f"<div class='generated-email'><pre>{email_text}</pre></div>", unsafe_allow_html=True)
+                copy_button(email_text, key="url_email")
 
     with tab2:
         st.header("Enter Job Details Manually")
@@ -184,6 +210,7 @@ def main():
                 email_text = email_gen.generate_email(job_data, links, user_info)
                 st.markdown("### ✨ Generated Email")
                 st.markdown(f"<div class='generated-email'><pre>{email_text}</pre></div>", unsafe_allow_html=True)
+                copy_button(email_text, key="manual_email")
             else:
                 st.warning("⚠️ Fill at least Role & Skills")
 
