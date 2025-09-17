@@ -1,97 +1,86 @@
+# portfolio.py
 import pandas as pd
-import os
-import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+from difflib import SequenceMatcher
+from typing import List, Dict, Any
 
 class Portfolio:
-    def __init__(self, file_path=None):
-        # Use a relative path if no file path is provided
-        if file_path is None:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            file_path = os.path.join(current_dir, "resource", "my_portfolio.csv")
-        
-        self.file_path = file_path
-        
-        # Check if file exists
-        if not os.path.exists(file_path):
-            # Create a sample portfolio if file doesn't exist
-            self._create_sample_portfolio(file_path)
-        
-        self.data = pd.read_csv(file_path)
-        self.vectorizer = TfidfVectorizer()
-        self._build_similarity_index()
-    
-    def _create_sample_portfolio(self, file_path):
-        """Create a sample portfolio file if it doesn't exist"""
-        sample_data = {
-            "Techstack": [
-                "React, Node.js, MongoDB",
-                "Angular, .NET, SQL Server",
-                "Vue.js, Ruby on Rails, PostgreSQL",
-                "Python, Django, MySQL",
-                "Java, Spring Boot, Oracle",
-                "JavaScript, HTML, CSS",
-                "React Native, Firebase",
-                "Flutter, Dart",
-                "Machine Learning, Python, TensorFlow",
-                "Data Analysis, SQL, Python"
-            ],
-            "Links": [
-                "https://example.com/react-portfolio",
-                "https://example.com/angular-portfolio",
-                "https://example.com/vue-portfolio",
-                "https://example.com/python-portfolio",
-                "https://example.com/java-portfolio",
-                "https://example.com/javascript-portfolio",
-                "https://example.com/reactnative-portfolio",
-                "https://example.com/flutter-portfolio",
-                "https://example.com/ml-portfolio",
-                "https://example.com/data-portfolio"
-            ]
-        }
-        sample_df = pd.DataFrame(sample_data)
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        sample_df.to_csv(file_path, index=False)
-    
-    def _build_similarity_index(self):
-        """Build TF-IDF vectors for portfolio items"""
-        self.portfolio_texts = self.data["Techstack"].tolist()
-        self.tfidf_matrix = self.vectorizer.fit_transform(self.portfolio_texts)
-    
-    def query_links(self, skills):
-        """Find most relevant portfolio items based on skills using TF-IDF cosine similarity"""
-        if not skills or not skills.strip():
-            # Return random items if no skills provided
-            return self.data.sample(n=min(2, len(self.data))).to_dict('records')
-        
-        # Vectorize the query skills
-        query_vec = self.vectorizer.transform([skills])
-        
-        # Calculate cosine similarities
-        similarities = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
-        
-        # Get top 2 most similar items
-        top_indices = similarities.argsort()[-2:][::-1]
-        
+    """
+    Simple portfolio manager that loads a DataFrame (or fallback sample)
+    and returns relevant portfolio links based on skill-string similarity.
+    """
+
+    def __init__(self, file_path: str = None):
+        """
+        If file_path is given, it should be a CSV with columns:
+        'Techstack' and 'Links' (optionally 'Title' and 'Description').
+        Otherwise a small built-in sample dataset is used.
+        """
+        if file_path:
+            try:
+                self.data = pd.read_csv(file_path)
+            except Exception:
+                self.data = self._sample_data()
+        else:
+            self.data = self._sample_data()
+        # Ensure expected columns exist
+        if "Techstack" not in self.data.columns or "Links" not in self.data.columns:
+            self.data = self._sample_data()
+
+    def _sample_data(self) -> pd.DataFrame:
+        return pd.DataFrame([
+            {
+                "Title": "Personal Portfolio - Python & Web",
+                "Techstack": "Python, FastAPI, Flask, JavaScript, React, SQL, Docker",
+                "Description": "Fullstack apps, REST APIs and microservices.",
+                "Links": "https://example.com/portfolio-python"
+            },
+            {
+                "Title": "Data Analysis Projects",
+                "Techstack": "Python, Pandas, NumPy, Scikit-learn, Tableau",
+                "Description": "Data cleaning, EDA and ML models.",
+                "Links": "https://example.com/portfolio-data"
+            },
+            {
+                "Title": "Business Development Case Studies",
+                "Techstack": "Sales, Negotiation, CRM, Outreach, Lead Gen",
+                "Description": "Generated qualified leads and closed deals.",
+                "Links": "https://example.com/portfolio-bizdev"
+            },
+            {
+                "Title": "UI/UX & Design",
+                "Techstack": "Figma, Prototyping, User Research, Design Systems",
+                "Description": "Design deliverables and case studies.",
+                "Links": "https://example.com/portfolio-design"
+            }
+        ])
+
+    @staticmethod
+    def _similar(a: str, b: str) -> float:
+        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+    def query_links(self, skills: str, top_n: int = 3) -> List[Dict[str, Any]]:
+        """
+        Given a comma/space separated skills string, return a list of
+        relevant portfolio items with a similarity score in [0,1].
+        """
+        if not skills:
+            return []
+
+        # Normalize input into a single string
+        skill_text = skills if isinstance(skills, str) else " ".join(skills)
+
         results = []
-        for idx in top_indices:
-            if similarities[idx] > 0.1:  # Only include if similarity is above threshold
-                results.append({
-                    "links": self.data.iloc[idx]["Links"],
-                    "techstack": self.data.iloc[idx]["Techstack"],
-                    "similarity": float(similarities[idx])
-                })
-        
-        # Fallback to random items if no good matches found
-        if not results:
-            random_items = self.data.sample(n=min(2, len(self.data)))
-            for _, row in random_items.iterrows():
-                results.append({
-                    "links": row["Links"],
-                    "techstack": row["Techstack"],
-                    "similarity": 0.0
-                })
-        
-        return results
+        for _, row in self.data.iterrows():
+            techstack = str(row.get("Techstack", ""))
+            # compute best similarity across the two strings
+            sim = self._similar(skill_text, techstack)
+            results.append({
+                "title": row.get("Title", techstack),
+                "links": row.get("Links", ""),
+                "techstack": techstack,
+                "description": row.get("Description", ""),
+                "similarity": sim
+            })
+
+        results = sorted(results, key=lambda x: x["similarity"], reverse=True)
+        return results[:top_n]
